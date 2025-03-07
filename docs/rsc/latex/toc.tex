@@ -1,0 +1,89 @@
+\documentclass[12pt]{letter} 
+\usepackage{geometry}
+\geometry{top=1in, bottom=1in, left=.75in, right=.75in}
+\usepackage{newtxtext,newtxmath} % Set Times New Roman font
+\usepackage{microtype} % Improved kerning and spacing
+\usepackage{longtable}  % Add this package for multi-page tables
+\usepackage[utf8]{inputenc}
+\usepackage[table,xcdraw]{xcolor}
+ 
+\pagestyle{empty}
+ 
+
+\begin{document}
+
+\begin{letter}{}
+
+\begin{center}
+    \textbf{$court.department$} \\
+    \textbf{$court.division$} \\
+    \textbf{$court.court_name$} \\
+    \textbf{$court.location$}
+\end{center}
+
+\renewcommand{\arraystretch}{1.2}  % Adjust line height (1.5 is just an example, can be tweaked)
+
+\vspace{2em}
+\makebox[0.5\textwidth]{\hrulefill}
+\begin{flushleft}
+    \begin{tabular}{ p{0.50\textwidth} | p{0.50\textwidth} }
+      
+      $if(document.multipleRespondents)$
+        \textbf{In the Matter of:} & \textbf{\hspace{1em}File No.:} \\
+      $else$
+        \textbf{In the Matter of:} \\
+      $endif$ 
+
+      \vspace{.0em} & \\ 
+
+      $for(respondents)$
+        \textbf{$it.full_name$} & \textbf{\hspace{1em}$it.file_number$} \\
+        $if(it.status)$ 
+          $if(it.count)$ 
+            \vspace{.0em} & \\ 
+            \textit{\textbf{Respondents}}
+          $else$
+            \textit{\textbf{Respondent}} 
+          $endif$ 
+          \textbf{$it.status$}
+
+          $if(it.count)$ 
+            \vspace{.25em} & \\
+          $endif$
+        $endif$    
+      $endfor$
+
+    \end{tabular}
+\end{flushleft}
+\makebox[0.5\textwidth]{\hrulefill}
+ 
+\vspace{1em}
+
+\fontsize{20}{22}\selectfont % 20pt font size with 24pt line height
+
+\begin{center}
+    \underline{\textbf{TABLE OF CONTENTS}}
+\end{center}
+
+\vspace{1em}
+ 
+\fontsize{16}{20}\selectfont % 20pt font size with 24pt line height
+
+\begin{longtable}{|c|p{0.7\textwidth}|r|}
+    \hline
+    \textbf{TAB} & \textbf{DESCRIPTION OF EXHIBIT} & \textbf{PAGE(S)} \\
+    \hline
+\endfirsthead
+    \hline
+    \textbf{TAB} & \textbf{DESCRIPTION OF EXHIBIT} & \textbf{PAGE(S)} \\
+    \hline
+\endhead
+    $for(contents)$
+    \textbf{${it.letter}} & ${it.title} & ${it.pageRange} \\
+    \hline
+    $endfor$
+\end{longtable}
+
+\end{letter}
+
+\end{document}

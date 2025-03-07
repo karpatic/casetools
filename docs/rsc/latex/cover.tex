@@ -1,0 +1,91 @@
+\documentclass[12pt]{letter}
+\usepackage{geometry}
+\geometry{top=0in, bottom=0in, left=.75in, right=.75in}
+\usepackage{newtxtext,newtxmath} % Set Times New Roman font
+\usepackage{microtype} % Improved kerning and spacing
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref} 
+
+% \documentclass[a4paper,12pt]{letter}
+% \geometry{a4paper, margin=1in} 
+
+\renewcommand{\arraystretch}{1.2}  % Adjust line height (1.5 is just an example, can be tweaked)
+
+\pagestyle{empty}  % Disable page numbering 
+
+\date{}
+
+\begin{document}
+
+\begin{letter}{}
+  \begin{flushleft}
+    \textbf{$attorney.attorney_name$} \hfill \textbf{$attorney.case_type$} \\
+    \textbf{$attorney.address$} \\
+    \textbf{$attorney.city$} \\
+    \textbf{Telephone $attorney.phone$} \\
+    \textbf{$attorney.email$} \\
+    \textbf{EOIR ID\# $attorney.eoir_id$} \\
+    \textbf{Attorney for Respondent}
+  \end{flushleft}
+  
+  \vspace{2em}
+  
+  \begin{center}
+    \textbf{$court.department$} \\
+    \textbf{$court.division$} \\
+    \textbf{$court.court_name$} \\
+    \textbf{$court.location$}
+  \end{center}
+  
+  \vspace{2em}
+   
+\makebox[0.5\textwidth]{\hrulefill}
+\begin{flushleft}
+    \begin{tabular}{ p{0.50\textwidth} | p{0.50\textwidth} }
+
+
+      $if(document.multipleRespondents)$
+        \textbf{In the Matter of:} & \textbf{\hspace{1em}File No.:} \\
+      $else$
+        \textbf{In the Matter of:} \\
+      $endif$ 
+
+      \vspace{.0em} & \\ 
+
+      $for(respondents)$
+        \textbf{$it.full_name$} & \textbf{\hspace{1em}$it.file_number$} \\
+        $if(it.status)$ 
+          $if(it.count)$ 
+            \vspace{.0em} & \\ 
+            \textit{\textbf{Respondents}}
+          $else$
+            \textit{\textbf{Respondent}} 
+          $endif$ 
+          \textbf{$it.status$}
+
+          $if(it.count)$ 
+            \vspace{.25em} & \\
+          $endif$
+        $endif$    
+      $endfor$
+
+    \end{tabular}
+\end{flushleft}
+\makebox[0.5\textwidth]{\hrulefill}
+
+  \vspace{2em}
+  
+  \begin{flushleft}
+    \textbf{Judge: $judge.judge_name$} \hfill \textbf{Next Hearing: $judge.hearing_date$ at $judge.hearing_time$}
+  \end{flushleft}
+
+  \vspace{2em}
+  
+  \begin{center}
+    \textbf{$document.title$}
+  \end{center}
+
+\end{letter}
+
+\end{document}
+

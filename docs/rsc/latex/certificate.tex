@@ -1,0 +1,54 @@
+\documentclass[12pt]{article}
+\usepackage{geometry}
+\geometry{top=1in, bottom=1in, left=1in, right=1in}
+\usepackage{newtxtext,newtxmath}  % Times New Roman font
+\usepackage{setspace}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{ulem} % Underline and strikethrough
+\usepackage{titlesec} % Better section titles
+\usepackage{ragged2e} % Better text alignment
+
+\pagestyle{empty}
+\date{}
+
+% Improve line height for better readability
+\setstretch{1.5}
+
+\begin{document}
+
+$for(respondents)$
+\noindent\textbf{\large $it.full_name$} \hfill \textbf{File No.: $it.file_number$} \\
+$endfor$
+
+\vspace{2em}
+
+\begin{center}
+    {\Large \textbf{CERTIFICATE OF SERVICE}}\\
+    \rule{0.65\textwidth}{0.6pt} % Elegant underline
+\end{center}
+
+\vspace{2em}
+
+\justifying
+\noindent On \uline{\hspace{3cm}}, I, \uline{\hspace{10cm}}, served a copy of this \uline{$document.title$} and any attached pages to the Department of Homeland Security, Immigration and Customs Enforcement, Office of the Principal Legal Advisor at:
+
+\vspace{1em}
+
+\begin{flushleft}  
+  \hspace{2em} \uline{$court.department$}\\
+  \hspace{2em} \uline{$court.division$}\\
+  \hspace{2em} \uline{$court.court_name$}\\
+  \hspace{2em} \uline{$court.location$}
+\end{flushleft}
+
+\vspace{2em}
+
+\noindent \text{By} \underline{EOIR Case Portal, E-ROP.}
+
+\vspace{4em}
+
+\noindent\makebox[0.45\textwidth]{\hrulefill} \hfill \makebox[0.45\textwidth]{\hrulefill}\\
+\noindent\textbf{$attorney.attorney_name$} \hfill \textbf{Date}
+
+\end{document}
