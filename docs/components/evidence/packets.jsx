@@ -126,12 +126,11 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
         console.log('createPacketStateHandler:', packetKey); 
 
         // packetResult = { certificatePdf: Blob {size: 69041, type: 'application/pdf'}, evidencePacketPdf: Blob }
-        const packetResult = await createPacket(cases[pickedCase], pickedCase, packetKey);
-        console.log('packetResult:', packetResult);
+        const packetResult = await createPacket(cases[pickedCase], pickedCase, packetKey); 
         
         // Save to localForage
-        const compiledPacketKey = `compiled_case_${currentCase}_packet_${packetKey}`;
-        console.log('createPacketHandler: compiledPacketKey:', compiledPacketKey);
+        const compiledPacketKey = `compiled_case_${pickedCase}_${packetKey}`;
+        console.log('createPacketHandler:', {compiledPacketKey});
         await localforage.setItem(compiledPacketKey, packetResult);
  
 
