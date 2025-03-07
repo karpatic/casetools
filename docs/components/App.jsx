@@ -135,7 +135,7 @@ const App = () => {
                     <p><b>Misc</b></p>
                     <ul> 
                         <li><b>PDF Tools:</b> Merge Pdfs Quick.</li>
-                        <li><b>ChatBot:</b> Talk to a chatbot that knows about your case</li>
+                        <li><b>ChatBot:</b> Talk to a chatbot that knows about your case</li> 
                     </ul>
                     <p>To get started, enter your chatGPT ApiKey and create a new case! Be aware: Data and Uploaded files live in your browser and only gets sent to OpenAI's ChatGPT to service the app (nowhere else).</p>
                 </div>
