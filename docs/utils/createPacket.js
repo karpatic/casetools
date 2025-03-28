@@ -1,6 +1,9 @@
 import {createTableOfContentsYaml, createCaseMetadataYaml} from './createTableOfContents.js'; 
-import { pdfMerge } from './pdf/merge.js';  
-import numberPages from './pdf/numberPages.js'; 
+import pdfMerge from './pdf/merge.js';   
+import {sanitizeForKey} from './utils.js';
+import localforage from 'localforage';  
+import numberPages from './pdf/numberPages.js';
+
 
 // todo: add filesize as a metadata attribute. 
 // todo: modulo an accumulator in the table display and default sort by sortId.
@@ -26,17 +29,17 @@ async function createPacket(selectedCase, pickedCase, packetKey) {
     // Step 1A. CERTIFICATE - Creates certificate.pdf      
     const PANDOC_URL = 'https://getfrom.net/pdf/pandoc'
     let latex = await fetch('rsc/latex/certificate.tex').then(res => res.text()); 
-    response = await fetch(PANDOC_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    let resp = await fetch(PANDOC_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, latex }),
     });  
-    const certificatePdf = await getPdfFromResponse(response);  // Blob {size: 69041, type: 'application/pdf'}    
+    const certificatePdf = await getPdfFromResponse(resp);  // Blob {size: 69041, type: 'application/pdf'}    
 
     // // Step 1B. COVER
     latex = await fetch('rsc/latex/cover.tex').then(res => res.text()); 
-    response = await fetch(PANDOC_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    let resptwo = await fetch(PANDOC_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, latex }),
     });
-    const coverPdf = await getPdfFromResponse(response);
+    const coverPdf = await getPdfFromResponse(resptwo);
     const coverPdfBytes = await coverPdf.arrayBuffer();
     
 
@@ -75,10 +78,10 @@ async function createPacket(selectedCase, pickedCase, packetKey) {
 
         // Check if the exhibit is too large
         const size = (await preparedExhibit.save()).length;
-        if (currentChunkSize + size > 26214400) { // 25MB chunk size
-            alert('Evidence packet is too large. Please reduce the number of exhibits.');
-            return { error: 'Evidence packet is too large. Please reduce the number of exhibits.' };
-        }
+        // if (currentChunkSize + size > 26214400) { // 25MB chunk size
+        //     alert('Evidence packet is too large. Please reduce the number of exhibits.');
+        //     return { error: 'Evidence packet is too large. Please reduce the number of exhibits.' };
+        // }
         currentChunkSize += size;
 
         const pages = parseInt(evidence.pages || 1);

@@ -195,8 +195,7 @@ const App = () => {
         }
     };
 
-    const downloadCase = async (casename) => {
-        try {
+    const downloadCase = async (casename) => { 
             const caseData = cases[casename];
             if (!caseData) return;
 
@@ -250,11 +249,7 @@ const App = () => {
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error("Error creating zip file:", error);
-            alert("Failed to download case. Check console for details.");
-        }
+            window.URL.revokeObjectURL(url); 
     };
 
     const handleCaseClick = (caseName) => {

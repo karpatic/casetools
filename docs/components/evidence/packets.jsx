@@ -36,10 +36,12 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
     }, [cases, pickedCase]);
     
     React.useEffect(() => {
+        // contains packetData.{certificatePdf, evidencePacketPdf}
         const fetchPacketData = async () => {
-            if (activeTab && !['new', 'upload'].includes(activeTab)) {
-                const compiledPacketKey = `compiled_case_${currentCase}_packet_${activeTab}`;
+            if (activeTab && !['new', 'upload'].includes(activeTab)) { 
+                const compiledPacketKey = `compiled_case_${pickedCase}_${activeTab}`;
                 const data = await localforage.getItem(compiledPacketKey);
+                console.log('~~~~~~ datadatadatadatadata :', data);
                 setPacketData(data);
             } else {
                 setPacketData(null);
@@ -152,6 +154,8 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
         }
     };
  
+    console.log('activeTab:', activeTab);
+
 
     return (
         <div> 
@@ -204,6 +208,8 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
                             <button type="button" className="btn btn-secondary" onClick={() => savePacket(packetKey)}>Save Changes</button>
                             <button type="button" className="btn btn-primary ms-2" onClick={() => sortEvidencePacket(packetKey)}>Sort Evidence</button>
                             <button type="button" className="btn btn-success ms-2" onClick={() => createPacketHandler(packetKey)}>Compile</button>
+ 
+
                         </form>
                     </div>
                 ))} 

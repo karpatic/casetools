@@ -83,4 +83,4 @@ ${tocYaml}
     return dataYaml;
 }
 
-export default {createTableOfContentsYaml, createCaseMetadataYaml};
+export {createTableOfContentsYaml, createCaseMetadataYaml};
