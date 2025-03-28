@@ -1,81 +1,76 @@
-import React from 'react';
-import localforage from 'localforage';
+import React from 'react'; 
+import localforage from 'localforage'; 
 
-import {sanitizeForKey} from '../../utils/utils.js';
-import {getTitle} from './../../utils/gpt/getTitle.js'
+import { sanitizeForKey } from './../../utils/utils.js'; 
+import {getTitle} from './../../utils/gpt/getTitle.js' 
 
 
 const EvidenceUpload = ({ pickedCase, cases, setCases }) => { 
-    const [files, setFiles] = React.useState([]);
-    const [uploading, setUploading] = React.useState(false);
-    const [currentFileIndex, setCurrentFileIndex] = React.useState(0);
-    const [uploadProgress, setUploadProgress] = React.useState(0);
+    const [files, setFiles] = React.useState([]); 
+    const [uploading, setUploading] = React.useState(false); 
+    const [currentFileIndex, setCurrentFileIndex] = React.useState(0); 
+    const [uploadProgress, setUploadProgress] = React.useState(0); 
 
-    const handleFileChange = (event) => {
-        // Convert FileList object to array for easier manipulation
-        const fileArray = Array.from(event.target.files);
-        setFiles(prevFiles => [...prevFiles, ...fileArray]);
-    };
+    const handleFileChange = (event) => { 
+        // Convert FileList object to array for easier manipulation 
+        const fileArray = Array.from(event.target.files); 
+        setFiles(prevFiles => [...prevFiles, ...fileArray]); 
+    }; 
 
-    const handleFolderChange = (event) => {
-        // Convert FileList object to array for easier manipulation
-        const fileArray = Array.from(event.target.files);
-        setFiles(prevFiles => [...prevFiles, ...fileArray]);
-    };
+    const handleFolderChange = (event) => { 
+        // Convert FileList object to array for easier manipulation 
+        const fileArray = Array.from(event.target.files); 
+        setFiles(prevFiles => [...prevFiles, ...fileArray]); 
+    }; 
 
-    const removeFile = (indexToRemove) => {
-        setFiles(prevFiles => prevFiles.filter((_, index) => index !== indexToRemove));
-    };
+    const removeFile = (indexToRemove) => { 
+        setFiles(prevFiles => prevFiles.filter((_, index) => index !== indexToRemove)); 
+    }; 
 
     const handleUpload = async () => { 
-        console.log('Uploading files:', files);
-        if (files.length === 0) return;  
-        const lastPacketNumber = Math.max(...Object.keys(cases[pickedCase])
-        ?.filter(key => key.startsWith('evidencePacket_'))
-        ?.map(key => parseInt(key.split('_')[1])) || 0)
+        console.log('Uploading files:', files); 
+        if (files.length === 0) return; 
+        const lastPacketNumber = Math.max(...Object.keys(cases[pickedCase]) 
+        ?.filter(key => key.startsWith('evidencePacket_')) 
+        ?.map(key => parseInt(key.split('_')[1])) || 0) 
 
-        console.log('[lastPacketNumber]', lastPacketNumber);
-        if(lastPacketNumber <= 0){
-            alert('You must create a packet first');
-            return false;
-        }
- 
-        let newEvidence = cases[pickedCase]?.evidence || [];
+        console.log('[lastPacketNumber]', lastPacketNumber); 
+        if(lastPacketNumber <= 0){ 
+            alert('You must create a packet first'); 
+            return false; 
+        } 
 
-        setUploading(true);
-        setCurrentFileIndex(0);
+        let newEvidence = cases[pickedCase]?.evidence || []; 
+
+        setUploading(true); 
+        setCurrentFileIndex(0); 
         setUploadProgress(0); 
 
-        // Upload files sequentially to localForage
-        for (let i = 0; i < files.length; i++) {
-            setCurrentFileIndex(i);
-            setUploadProgress(Math.round((i / files.length) * 100));
+        // Upload files sequentially to localForage 
+        for (let i = 0; i < files.length; i++) { 
+            setCurrentFileIndex(i); 
+            setUploadProgress(Math.round((i / files.length) * 100)); 
 
-            const file = files[i];
-            try {
-                // Store file in localForage
-                const sanitizedFilename = sanitizeForKey(file.name);
-                const storageKey = `${pickedCase}_${sanitizedFilename}`; 
-                await localforage.setItem(storageKey, file);
-                
-                // Update evidence list. just one
-                const oldFile = newEvidence.find(evidence => evidence.fileName === file.name); 
-                if (!oldFile || !oldFile['title']){ 
-                    newEvidence = newEvidence.filter(evidence => evidence.fileName !== file.name);
-                    const titleObj = await getTitle(cases, pickedCase, file.name);
-                    let finalObj = {  
-                        ...titleObj,
-                        fileName: file.name,
-                        storageKey: storageKey, 
-                        evidencePacket: lastPacketNumber,
-                        fileSize: file.size,
-                    } 
-                    newEvidence.push(finalObj);
-                }  
-                
-            } catch (error) {
-                console.error('Error storing file in localForage:', error); 
-            }
+            const file = files[i];  
+            // Store file in localForage 
+            const sanitizedFilename = sanitizeForKey(file.name); 
+            const storageKey = `${pickedCase}_${sanitizedFilename}`; 
+            await localforage.setItem(storageKey, file); 
+            
+            // Update evidence list. just one 
+            const oldFile = newEvidence.find(evidence => evidence.fileName === file.name); 
+            if (!oldFile || !oldFile['title']){ 
+                newEvidence = newEvidence.filter(evidence => evidence.fileName !== file.name); 
+                const titleObj = await getTitle(cases, pickedCase, file.name); 
+                let finalObj = { 
+                    ...titleObj, 
+                    fileName: file.name, 
+                    storageKey: storageKey, 
+                    evidencePacket: lastPacketNumber, 
+                    fileSize: file.size, 
+                } 
+                newEvidence.push(finalObj); 
+            }  
         }
         let newCases = JSON.parse(JSON.stringify(cases));  
         newCases[pickedCase].evidence = newEvidence;
@@ -159,4 +154,4 @@ const EvidenceUpload = ({ pickedCase, cases, setCases }) => {
     );
 };
 
-export default EvidenceUpload;
+export default EvidenceUpload; 

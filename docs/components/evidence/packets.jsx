@@ -1,6 +1,6 @@
 // EvidencePackets.jsx
 
-import React from 'react'; // Add React import
+import React from 'react'; 
 import localforage from 'localforage';
 import showToast from './../showToast.js'; 
 import EvidenceTable from './table.jsx';
@@ -167,12 +167,7 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
                     <button className={`nav-link ${activeTab === 'new' ? 'active' : ''}`} onClick={handleCreateNewPacket}>
                         Create New Packet
                     </button>
-                </li>
-                <li className="nav-item">
-                    <button className={`nav-link ${activeTab === 'upload' ? 'active' : ''}`} onClick={() => setActiveTab('upload')}>
-                        Upload Evidence
-                    </button>
-                </li>
+                </li> 
             </ul>
             <div className="tab-content mt-3">
                 {Object.keys(currentCase).filter(key => key.startsWith('evidencePacket_')).map((packetKey, index) => (

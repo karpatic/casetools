@@ -1,9 +1,10 @@
 // EvidencePackets.jsx
  
 import React from 'react';
-import {sanitizeForKey} from '../../utils/utils.js';
+import { sanitizeForKey } from './../../utils/utils.js';
 import {getTitle} from './../../utils/gpt/getTitle.js' 
 import EvidenceUpload from './upload.jsx';
+import localforage from 'localforage';
 
 // evidence, setEvidence 
 const EvidenceTable = ({ cases, setCases, pickedCase }) => { 
@@ -15,6 +16,7 @@ const EvidenceTable = ({ cases, setCases, pickedCase }) => {
     const [showPdf, setShowPdf] = React.useState(false);
     const [pdfUrl, setPdfUrl] = React.useState(null);  
     const [showUpload, setShowUpload] = React.useState(false);
+    const [tableHeight, setTableHeight] = React.useState("820px");
 
     // update evidence when cases[pickedCase].evidence changes
     React.useEffect(() => {
@@ -98,9 +100,11 @@ const EvidenceTable = ({ cases, setCases, pickedCase }) => {
         );
 
         const viewPdf = async (fileName) => {
+            console.log('viewPdf called with fileName:', fileName); // Log when viewPdf is called
             try {
                 let fname = sanitizeForKey(fileName);
                 const fileKey = `${pickedCase}_${fname}`;
+                console.log('Retrieving file with key:', fileKey); // Log the file key being retrieved
                 const file = await localforage.getItem(fileKey);
                 if (file) {
                     const url = URL.createObjectURL(file);
@@ -115,10 +119,31 @@ const EvidenceTable = ({ cases, setCases, pickedCase }) => {
             }
         };
 
-        new Tabulator("#evidence-table", {
+        const highlightRowAndColumn = (cell) => {
+            console.log('clicked cell', cell);
+            const tableElement = document.querySelector("#evidence-table");
+            if (!tableElement) return;
+
+            // Remove existing highlights
+            tableElement.querySelectorAll(".highlighted-row, .highlighted-column").forEach(el => {
+                el.classList.remove("highlighted-row", "highlighted-column");
+            });
+
+            // Highlight the row
+            const rowElement = cell.getRow().getElement();
+            rowElement.classList.add("highlighted-row");
+
+            // Highlight the column
+            const columnField = cell.getField();
+            tableElement.querySelectorAll(`.tabulator-cell[tabulator-field="${columnField}"]`).forEach(el => {
+                el.classList.add("highlighted-column");
+            });
+        };
+
+        const table = new Tabulator("#evidence-table", {
             data: filteredEvidence,
             renderHorizontal: "virtual", 
-            maxHeight:"820px",
+            maxHeight: tableHeight,
             maxWidth:  "90%",
             columns: [ 
                 { title: "Packet #", field: "evidencePacket", editor: "input", headerFilter: "input" },
@@ -156,6 +181,7 @@ const EvidenceTable = ({ cases, setCases, pickedCase }) => {
                     button.innerHTML = "View PDF";
                     button.className = "btn btn-info btn-sm";
                     button.onclick = () => {
+                        console.log('View PDF button clicked'); // Log when the button is clicked
                         const row = cell.getRow();
                         const fileName = row.getData().fileName;
                         viewPdf(fileName);
@@ -236,9 +262,16 @@ const EvidenceTable = ({ cases, setCases, pickedCase }) => {
                 const rowIndex = cell.getRow().getPosition();
                 updatedEvidence[rowIndex] = { ...updatedEvidence[rowIndex], [cell.getField()]: cell.getValue() };
                 setEvidence(updatedEvidence);
+            },
+            cellClick: (e, cell) => {
+                highlightRowAndColumn(cell);
             }
         });
-    }, [evidence, packetNumber, searchFilter]); // added searchFilter
+
+        return () => {
+            table.destroy(); // Clean up Tabulator instance on unmount
+        };
+    }, [evidence, packetNumber, searchFilter, tableHeight]); // added searchFilter
 
     const saveEvidence = () => {
         const newCases = JSON.parse(JSON.stringify(cases));
@@ -270,7 +303,7 @@ const EvidenceTable = ({ cases, setCases, pickedCase }) => {
     return (
         <div className="mb-5"> 
             <h1 className="my-4">Evidence Manager</h1>
-            <div className="mb-2">
+            <div className="mb-2" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <input 
                     type="text" 
                     placeholder="Search by filename or title" 
@@ -278,6 +311,18 @@ const EvidenceTable = ({ cases, setCases, pickedCase }) => {
                     onChange={(e) => setSearchFilter(e.target.value)} 
                     style={{ marginBottom: "10px", padding: "4px", width: "300px" }}
                 />
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <label htmlFor="tableHeight" style={{ marginRight: '5px' }}>Table Height:</label>
+                    <input
+                        type="number"
+                        id="tableHeight"
+                        placeholder="Table Height (px)"
+                        value={tableHeight.replace("px", "")}
+                        onChange={(e) => setTableHeight(e.target.value + "px")}
+                        step="50"
+                        style={{ marginBottom: "10px", padding: "4px", width: "150px", textAlign: 'right' }}
+                    />
+                </div>
             </div>
             <div className="breakoutTable">
                 <div className="breakoutTableContainer">
@@ -334,6 +379,12 @@ const EvidenceTable = ({ cases, setCases, pickedCase }) => {
                     width: "90%";
                     margin: 0 auto; 
                 } 
+                .highlighted-row {
+                    background-color: rgba(245, 245, 220, 0.5); /* Transparent beige */
+                }
+                .highlighted-column {
+                    background-color: rgba(245, 245, 220, 0.5); /* Transparent beige */
+                }
             `}
             </style>
         </div>

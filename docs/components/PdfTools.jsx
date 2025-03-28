@@ -47,7 +47,7 @@ const PdfTools = () => {
                                 </div>
                                 <button className="btn btn-primary mt-2" onClick={mergePdfs}>Merge PDFs</button>
                                 {mergedPdfUrl && (
-                                    <a href={mergedPdfUrl} download="merged.pdf" className="btn btn-success mt-2">Download Merged PDF</a>
+                                    <a href={mergedPdfUrl} download={`merged_${files[0]?.name?.split('.')[0] || 'merged'}.pdf`} className="btn btn-success mt-2">Download Merged PDF</a>
                                 )}
                             </div>
                         </div>

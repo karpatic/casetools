@@ -1,7 +1,9 @@
 // CaseBasics.js 
 
-
+import React from 'react';
 import showToast from './../showToast.js';
+
+console.log('CaseBasics.js loaded');    
 
 const CaseBasics = ({ cases, setCases, pickedCase }) => { 
     const [activeTab, setActiveTab] = React.useState(() => {

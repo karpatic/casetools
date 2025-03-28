@@ -1,6 +1,9 @@
 import { callVisionGPT } from './gpt.js';
 import { pdfPageToImage } from './../pdf/pageToImage.js';
-import { pageCount } from './../pdf/pageCount.js';
+import pageCount from './../pdf/pageCount.js';
+
+import { sanitizeForKey } from './../../utils/utils.js';
+import localforage from 'localforage'; 
 
 const titlePrompt = `
 you are a helpful legal assistant that helps sort documents. 

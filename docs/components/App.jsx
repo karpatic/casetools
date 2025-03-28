@@ -1,10 +1,19 @@
 import React from 'react';
 import ReactDOM from 'react-dom'; 
 import localforage from 'localforage';
+import JSZip from 'jszip';
+// /* Components */
 import CaseBasics from './case/basics.jsx';
 import EvidencePackets from './evidence/packets.jsx';
-import PdfTools from './PdfTools.jsx';
-import JSZip from 'jszip';
+import PdfTools from './PdfTools.jsx'; 
+import { sanitizeForKey } from './../utils/utils.js';
+
+// localforage.clear().then(() => {
+//     console.log('All data cleared from localforage');
+// }).catch((err) => {
+//     console.error('Error clearing localforage:', err);
+// });
+// localStorage.clear()
 
 localforage.config({
     driver: localforage.INDEXEDDB,
@@ -13,38 +22,35 @@ localforage.config({
     storeName: 'cases',
 });
 
-const App = () => {
+const App = () => { 
     const [cases, setCases] = React.useState(null);         // { caseName: { config: {}, evidence: [] } }
     const [pickedCase, setPickedCase] = React.useState(() => localStorage.getItem('pickedCase') );  
     const [loading, setLoading] = React.useState(null); 
     const [newCaseName, setNewCaseName] = React.useState('');
     const [apiKey, setApiKey] = React.useState(() => localStorage.getItem('apiKey') || '');
     const fileInputRef = React.useRef();
-
-    const getCases = async () => {
-        try {
-            const storedCases = await localforage.getItem('cases');
-            console.log('storedCases:', storedCases);
-            if(!storedCases) {
-                setCases({});
-                setLoading(false);
-                await localforage.setItem('cases', {});
-                return
-            }
-            setCases(storedCases);
-            // Auto-select if there's only one case
-            const caseNames = Object.keys(storedCases);
-            if (caseNames.length === 1 && !pickedCase) {
-                setPickedCase(caseNames[0]);
-                localStorage.setItem('pickedCase', caseNames[0]);
-            } else if (!pickedCase || !storedCases[pickedCase]) {
-                setPickedCase('');
-                localStorage.removeItem('pickedCase');
-            }
+ 
+ 
+    const getCases = async () => { 
+        const storedCases = await localforage.getItem('cases');
+        console.log('storedCases:', storedCases);
+        if(!storedCases) {
+            setCases({});
             setLoading(false);
-        } catch (error) {
-            console.error("Error retrieving cases from localforage:", error);
+            await localforage.setItem('cases', {});
+            return
         }
+        setCases(storedCases);
+        // Auto-select if there's only one case
+        const caseNames = Object.keys(storedCases);
+        if (caseNames.length === 1 && !pickedCase) {
+            setPickedCase(caseNames[0]);
+            localStorage.setItem('pickedCase', caseNames[0]);
+        } else if (!pickedCase || !storedCases[pickedCase]) {
+            setPickedCase('');
+            localStorage.removeItem('pickedCase');
+        }
+        setLoading(false); 
     };
 
     React.useEffect(() => getCases(), []);
@@ -115,24 +121,41 @@ const App = () => {
             
             const caseName = jsonFile.replace('.json', '').split('/').pop();
             
-            if (cases[caseName]) {
-                alert(`Case "${caseName}" already exists`);
-                return;
-            }
+            // if (cases[caseName]) {
+            //     alert(`Case "${caseName}" already exists`);
+            //     return;
+            // }
 
             const caseData = JSON.parse(await zip.files[jsonFile].async('text'));
-            
-            // Load evidence files
-            if (caseData.evidence) {
+
+            // console.log('UploadCase', caseData)  
+            console.log(zip.files)
+
+            // Load evidence files 
+            if (caseData.evidence.length > 0) {
                 for (const e of caseData.evidence) {
                     const filePath = `evidence/${e.fileName}`;
-                    if (zip.files[filePath]) {
-                        const fileBlob = await zip.files[filePath].async('blob');
-                        const fileKey = `${caseName}_${sanitizeForKey(e.fileName)}`;
-                        await localforage.setItem(fileKey, fileBlob);
+                    if (zip.files[filePath]) { 
+                        const sanitizedFilename = sanitizeForKey(e.fileName);
+                        const fileKey = `${caseName}_${sanitizedFilename}`;
+                        const fileBlob = await zip.files[filePath].async('arraybuffer');
+                        const mimeType = e.fileName.toLowerCase().endsWith('.pdf')
+                            ? 'application/pdf'
+                            : 'application/octet-stream';
+                        const formattedBlob = new Blob([fileBlob], { type: mimeType });
+                        console.log('Saving:', fileKey);
+                        await localforage.setItem(fileKey, formattedBlob);
+
+                        // Update evidence with additional metadata
+                        e.storageKey = fileKey;
+                        e.fileSize = formattedBlob.size;
+                    } else {
+                        console.log('File not found in zip:', filePath);
                     }
                 }
             }
+
+
 
             // Load packet files
             const packetFolders = Object.keys(zip.files)
@@ -148,6 +171,7 @@ const App = () => {
                         evidencePacketPdf: await evidenceFile.async('blob')
                     };
                     const compiledPacketKey = `compiled_case_${caseName}_${packetKey}`;
+                    console.log('Saving compiledPacketKey:', compiledPacketKey);
                     await localforage.setItem(compiledPacketKey, compiledPacket);
                 }
             }
@@ -167,7 +191,7 @@ const App = () => {
             event.target.value = '';
         } catch (error) {
             console.error("Error uploading case:", error);
-            alert("Failed to upload case. Check console for details.");
+            alert("Failed to upload zip. Check console for details.");
         }
     };
 
@@ -190,7 +214,10 @@ const App = () => {
                     const fileKey = `${casename}_${sanitizeForKey(e.fileName)}`;
                     const file = await localforage.getItem(fileKey);
                     if (file) {
-                        const fileBlob = new Blob([await file.arrayBuffer()]);
+                        const mimeType = e.fileName.toLowerCase().endsWith('.pdf')
+                            ? 'application/pdf'
+                            : file.type || 'application/octet-stream';
+                        const fileBlob = new Blob([await file.arrayBuffer()], { type: mimeType });
                         evidenceFolder.file(e.fileName, fileBlob);
                     }
                 }
@@ -244,7 +271,7 @@ const App = () => {
     if (!cases || loading) {
         return <div className="container">Loading...</div>;
     }
-
+ 
     return (
         <div className="container">
             <div>
@@ -275,7 +302,7 @@ const App = () => {
                         <li><b>PDF Tools:</b> Merge Pdfs Quick.</li>
                         <li><b>ChatBot:</b> Talk to a chatbot that knows about your case</li> 
                     </ul>
-                    <p>To get started, enter your chatGPT ApiKey and create a new case! Be aware: Data and Uploaded files live in your browser and only gets sent to OpenAI's ChatGPT to service the app (nowhere else).</p>
+                    <p>To get started, provide an OpenAi API Key and create a new case! Be aware: Data and Uploaded files live in your browser and only gets sent to OpenAI's ChatGPT to service the app (nowhere else).</p>
                 </div>
                 <div className="mb-4"> 
                     <div className="input-group">
@@ -291,7 +318,7 @@ const App = () => {
                             className="btn btn-primary" 
                             onClick={() => fileInputRef.current.click()}
                         >
-                            Upload Case
+                            Upload Zip
                         </button>
                         <input
                             ref={fileInputRef}
@@ -338,7 +365,7 @@ const App = () => {
                                     </button>
                                 </>
                             )}
-                        </div>
+                        </div> 
                     ))}
                 </div>
             </div> 

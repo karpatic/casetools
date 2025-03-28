@@ -20,6 +20,7 @@ The project file structure is organized as follows:
 │   │   ├── evidence/
 │   │   │   ├── packets.jsx
 │   │   │   └── upload.jsx
+│   │   │   └── table.jsx
 │   │   └── App.jsx
 ├── notes/
 │   └── about.md
