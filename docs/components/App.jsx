@@ -134,7 +134,7 @@ const App = () => {
             // Load evidence files 
             if (caseData.evidence.length > 0) {
                 for (const e of caseData.evidence) {
-                    const filePath = `evidence/${e.fileName}`;
+                    const filePath = `${file.name.replace('.zip','')}/evidence/${e.fileName}`;
                     if (zip.files[filePath]) { 
                         const sanitizedFilename = sanitizeForKey(e.fileName);
                         const fileKey = `${caseName}_${sanitizedFilename}`;

@@ -132,7 +132,8 @@ const EvidenceTable = ({ cases, setCases, pickedCase }) => {
     let tabulatorInstance = null; // Replace ref with a variable
 
     React.useEffect(() => {
-        const filteredEvidence = evidence.filter(item => item.evidencePacket == packetNumber && (item.fileName.includes(searchFilter) || item.title.includes(searchFilter)));
+        //  item.evidencePacket == packetNumber
+        let filteredEvidence = evidence.filter(item => (item.fileName.includes(searchFilter) || item.title.includes(searchFilter)));
 
         // Initialize Tabulator and store the instance in the variable
         if (!tabulatorInstance) {
