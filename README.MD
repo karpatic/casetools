@@ -48,11 +48,17 @@ The `cases` object is a collection of case data, where each key is a case name a
         "eoir_id": "string",
         "case_type": "string"
       },
-      "court": {
-        "department": "string",
-        "division": "string",
-        "court_name": "string",
-        "location": "string"
+      "cover": {
+        "cover_department": "string",
+        "cover_division": "string",
+        "cover_name": "string",
+        "cover_location": "string"
+      },
+      "certificate": {
+        "certificate_department": "string",
+        "certificate_division": "string",
+        "certificate_name": "string",
+        "certificate_location": "string"
       },
       "respondents": [
         {

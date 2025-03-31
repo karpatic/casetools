@@ -2,6 +2,7 @@
 
 import React from 'react';
 import showToast from './../showToast.js';
+import localforage from 'localforage';
 
 console.log('CaseBasics.js loaded');    
 
@@ -192,32 +193,63 @@ const CaseBasics = ({ cases, setCases, pickedCase }) => {
                         </div>
                     </div>
                     <div className="accordion-item">
-                        <h2 className="accordion-header" id="headingCourt">
+                        <h2 className="accordion-header" id="headingCover">
                             <button 
-                                className={"accordion-button " + (activeTab === 'court' ? "" : "collapsed")}
+                                className={"accordion-button " + (activeTab === 'cover' ? "" : "collapsed")}
                                 type="button"
-                                onClick={() => setActiveTab(activeTab === 'court' ? '' : 'court')}
+                                onClick={() => setActiveTab(activeTab === 'cover' ? '' : 'cover')}
                             >
-                                Court
+                                Cover
                             </button>
                         </h2>
-                        <div id="collapseCourt" className={"accordion-collapse collapse" + (activeTab === 'court' ? " show" : "")} data-bs-parent="#caseBasicsAccordion">
+                        <div id="collapseCover" className={"accordion-collapse collapse" + (activeTab === 'cover' ? " show" : "")} data-bs-parent="#caseBasicsAccordion">
                             <div className="accordion-body">
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Department:</label>
-                                    <input type="text" className="form-control" name="court.department" value={config?.court?.department || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="cover.cover_department" value={config?.cover?.cover_department || ''} onChange={handleConfigChange} />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Division:</label>
-                                    <input type="text" className="form-control" name="court.division" value={config?.court?.division || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="cover.cover_division" value={config?.cover?.cover_division || ''} onChange={handleConfigChange} />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
-                                    <label className="form-label me-2">Court Name:</label>
-                                    <input type="text" className="form-control" name="court.court_name" value={config?.court?.court_name || ''} onChange={handleConfigChange} />
+                                    <label className="form-label me-2">Cover Name:</label>
+                                    <input type="text" className="form-control" name="cover.cover_name" value={config?.cover?.cover_name || ''} onChange={handleConfigChange} />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Location:</label>
-                                    <input type="text" className="form-control" name="court.location" value={config?.court?.location || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="cover.cover_location" value={config?.cover?.cover_location || ''} onChange={handleConfigChange} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="accordion-item">
+                        <h2 className="accordion-header" id="headingCover">
+                            <button 
+                                className={"accordion-button " + (activeTab === 'certificate' ? "" : "collapsed")}
+                                type="button"
+                                onClick={() => setActiveTab(activeTab === 'certificate' ? '' : 'certificate')}
+                            >
+                                Certificate
+                            </button>
+                        </h2>
+                        <div id="collapseCertificate" className={"accordion-collapse collapse" + (activeTab === 'certificate' ? " show" : "")} data-bs-parent="#caseBasicsAccordion">
+                            <div className="accordion-body">
+                                <div className="mb-3 d-flex align-items-center">
+                                    <label className="form-label me-2">Department:</label>
+                                    <input type="text" className="form-control" name="certificate.certificate_department" value={config?.certificate?.certificate_department || ''} onChange={handleConfigChange} />
+                                </div>
+                                <div className="mb-3 d-flex align-items-center">
+                                    <label className="form-label me-2">Division:</label>
+                                    <input type="text" className="form-control" name="certificate.certificate_division" value={config?.certificate?.certificate_division || ''} onChange={handleConfigChange} />
+                                </div>
+                                <div className="mb-3 d-flex align-items-center">
+                                    <label className="form-label me-2">Certificate Name:</label>
+                                    <input type="text" className="form-control" name="certificate.certificate_name" value={config?.certificate?.certificate_name || ''} onChange={handleConfigChange} />
+                                </div>
+                                <div className="mb-3 d-flex align-items-center">
+                                    <label className="form-label me-2">Location:</label>
+                                    <input type="text" className="form-control" name="certificate.certificate_location" value={config?.certificate?.certificate_location || ''} onChange={handleConfigChange} />
                                 </div>
                             </div>
                         </div>

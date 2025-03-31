@@ -86,14 +86,16 @@ const CaseChatBot = ({ config, pickedCase, password, evidence }) => {
         const { 
             caseFacts = "", 
             attorney = { name: "", phone: "", email: "" }, 
-            court = { court_name: "", location: "" }, 
+            cover = { cover_name: "", cover_location: "" }, 
+            certificate = { certificate_name: "", certificate_location: "" }, 
             respondent = { full_name: "", file_number: "", status: "" }, 
             judge = { hearing_date: "", hearing_time: "" } 
         } = basics || {};
         const basicsText = `Legal Case Work:
 Case Facts: ${caseFacts}.
 Attorney: ${attorney?.name} (Phone: ${attorney?.phone}, Email: ${attorney?.email}).
-Court: ${court?.court_name}, ${court?.location}.
+Cover: ${cover?.cover_name}, ${cover?.cover_location}.
+Certificate = { certificate_name: "", certificate_location: "" }, 
 Respondent: ${respondent?.full_name} (File Number: ${respondent?.file_number}, Status: ${respondent?.status}).
 Hearing Date & Time: ${judge?.hearing_date} at ${judge?.hearing_time}.`;
 
