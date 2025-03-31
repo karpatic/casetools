@@ -48,12 +48,12 @@ async function createPacket(selectedCase, pickedCase, packetKey) {
     const evidence = selectedCase.evidence; 
     
     // Step 2A. Filter
-    const packetNumber = parseInt(packetKey.split('_')[1]); 
-    const filteredEvidence = evidence.filter(e => e.evidencePacket === packetNumber);
+    const packetNumber = parseInt(packetKey.split('_')[1]);  
+    const filteredEvidence = evidence.filter(e => parseInt(e.evidencePacket) == packetNumber);
 
     // Step 2B. Sort
-    filteredEvidence.sort((a, b) => a.sortId - b.sortId);
- 
+    filteredEvidence.sort((a, b) => a.sortId - b.sortId); 
+
     let currentPage = parseInt(packetConfig.startPage || 1);
     const startLetterIndex = letterToIndex(packetConfig?.startLetter || 'A');  
 

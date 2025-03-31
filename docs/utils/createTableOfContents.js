@@ -1,4 +1,5 @@
-function createCaseContentsYaml(tableOfContents) {    
+function createCaseContentsYaml(tableOfContents) {   
+    console.log('createCaseContentsYaml - tableOfContents:', tableOfContents); 
     let createRecord = entry =>
         `  - letter: "${entry.letter}"\n    title: "${entry.title.replace(/"/g, '\\"')}"\n    pageRange: "${entry.pageRange}"`;
     let tocYaml = "contents:\n" + tableOfContents.map(createRecord).join("\n");

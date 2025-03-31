@@ -41,7 +41,7 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
             if (activeTab && !['new', 'upload'].includes(activeTab)) { 
                 const compiledPacketKey = `compiled_case_${pickedCase}_${activeTab}`;
                 const data = await localforage.getItem(compiledPacketKey);
-                console.log('~~~~~~ datadatadatadatadata :', data);
+                // console.log('~~~~~~ datadatadatadatadata :', data);
                 setPacketData(data);
             } else {
                 setPacketData(null);

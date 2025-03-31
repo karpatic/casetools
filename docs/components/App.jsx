@@ -130,11 +130,13 @@ const App = () => {
 
             // console.log('UploadCase', caseData)  
             console.log(zip.files)
+            console.log(Object.keys(zip.files))
 
             // Load evidence files 
             if (caseData.evidence.length > 0) {
                 for (const e of caseData.evidence) {
-                    const filePath = `${file.name.replace('.zip','')}/evidence/${e.fileName}`;
+                    // `${file.name.replace('.zip','')}/` + 
+                    const filePath = `evidence/${e.fileName}`;
                     if (zip.files[filePath]) { 
                         const sanitizedFilename = sanitizeForKey(e.fileName);
                         const fileKey = `${caseName}_${sanitizedFilename}`;
