@@ -29,7 +29,7 @@ generate_pdf() {
 
 \vspace*{\fill}
 \begin{center}
-    \scalebox{30}{\textbf{$letter}} % Scale the letter 30 times larger
+    \scalebox{16}{\textbf{$letter}} % Scale the letter 30 times larger
 \end{center}
 \vspace*{\fill}
 

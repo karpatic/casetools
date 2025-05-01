@@ -144,7 +144,7 @@ const CaseBasics = ({ cases, setCases, pickedCase }) => {
                             <div className="accordion-body">
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Case Facts:</label>
-                                    <input type="text" className="form-control" name="caseFacts" value={config?.caseFacts || ''} onChange={handleConfigChange} />
+                                    <textarea className="form-control" name="caseFacts" value={config?.caseFacts || ''} onChange={handleConfigChange} />
                                 </div>
                             </div>
                         </div>
@@ -244,12 +244,20 @@ const CaseBasics = ({ cases, setCases, pickedCase }) => {
                                     <input type="text" className="form-control" name="certificate.certificate_division" value={config?.certificate?.certificate_division || ''} onChange={handleConfigChange} />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
-                                    <label className="form-label me-2">Certificate Name:</label>
+                                    <label className="form-label me-2">Name:</label>
                                     <input type="text" className="form-control" name="certificate.certificate_name" value={config?.certificate?.certificate_name || ''} onChange={handleConfigChange} />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
-                                    <label className="form-label me-2">Location:</label>
-                                    <input type="text" className="form-control" name="certificate.certificate_location" value={config?.certificate?.certificate_location || ''} onChange={handleConfigChange} />
+                                    <label className="form-label me-2">Address:</label>
+                                    <input type="text" className="form-control" name="certificate.certificate_location_address" value={config?.certificate?.certificate_location_address || ''} onChange={handleConfigChange} />
+                                </div>
+                                <div className="mb-3 d-flex align-items-center">
+                                    <label className="form-label me-2">Address Line Two:</label>
+                                    <input type="text" className="form-control" name="certificate.certificate_location_linetwo" value={config?.certificate?.certificate_location_linetwo || ''} onChange={handleConfigChange} />
+                                </div>
+                                <div className="mb-3 d-flex align-items-center">
+                                    <label className="form-label me-2">Address State and Zip:</label>
+                                    <input type="text" className="form-control" name="certificate.certificate_location_statezip" value={config?.certificate?.certificate_location_statezip || ''} onChange={handleConfigChange} />
                                 </div>
                             </div>
                         </div>

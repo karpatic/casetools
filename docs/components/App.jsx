@@ -7,7 +7,6 @@ import CaseBasics from './case/basics.jsx';
 import EvidencePackets from './evidence/packets.jsx';
 import PdfTools from './PdfTools.jsx'; 
 import { sanitizeForKey } from './../utils/utils.js';
-
 // localforage.clear().then(() => {
 //     console.log('All data cleared from localforage');
 // }).catch((err) => {
@@ -29,7 +28,6 @@ const App = () => {
     const [newCaseName, setNewCaseName] = React.useState('');
     const [apiKey, setApiKey] = React.useState(() => localStorage.getItem('apiKey') || '');
     const fileInputRef = React.useRef();
- 
  
     const getCases = async () => { 
         const storedCases = await localforage.getItem('cases');

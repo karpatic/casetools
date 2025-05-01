@@ -27,7 +27,9 @@ function createCaseMetadataYaml(config, packetConfig) {
     let requiredKeys = ['packetTitle', 'attorney_name', 'address', 'city', 'phone', 
         'cover_department', 'email', 'eoir_id', 'case_type', 'cover_name', 'cover_division', 
         'cover_location', 'judge_name', 'hearing_date', 'hearing_time', 'certificate_name',
-        'certificate_department', 'certificate_division', 'certificate_location'];
+        'certificate_department', 'certificate_division', 'certificate_location_address',
+        'certificate_location_linetwo', 'certificate_location_statezip']; 
+        
     let missingKeys = requiredKeys.filter(k => !keys.includes(k))
     if (missingKeys.length > 0) {
         console.log('createTableOfContentsYaml - Missing keys:', missingKeys);
@@ -60,8 +62,10 @@ cover:
 certificate: 
     certificate_department: "${f.certificate_department}"
     certificate_division: "${f.certificate_division}"
-    certificate_location: "${f.certificate_location}"
     certificate_name: "${f.certificate_name}"
+    certificate_location_address: "${f.certificate_location_address}" 
+    certificate_location_linetwo: "${f.certificate_location_linetwo}" 
+    certificate_location_statezip: "${f.certificate_location_statezip}" 
     
 respondents:
 ${config?.respondents?.map(r => `  - full_name: "${r.full_name}"

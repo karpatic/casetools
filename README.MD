@@ -58,7 +58,9 @@ The `cases` object is a collection of case data, where each key is a case name a
         "certificate_department": "string",
         "certificate_division": "string",
         "certificate_name": "string",
-        "certificate_location": "string"
+        "certificate_location_address": "string",
+        "certificate_location_linetwo": "string",
+        "certificate_location_statezip": "string"
       },
       "respondents": [
         {

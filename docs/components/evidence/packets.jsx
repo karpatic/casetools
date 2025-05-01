@@ -4,9 +4,9 @@ import React from 'react';
 import localforage from 'localforage';
 import showToast from './../showToast.js'; 
 import EvidenceTable from './table.jsx';
+import CaseChatBot from './../case/chatbot.jsx';
 import sortTableOfContents from './../../utils/gpt/sortTableOfContents.js'; 
 import createPacket from '../../utils/createPacket.js';
-
 
 const EvidencePackets = ({ cases, setCases, pickedCase }) => {
     const [newPacket, setNewPacket] = React.useState({
@@ -290,7 +290,13 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
                         pickedCase={pickedCase} 
                     />
                 </div>
-            </div>
+            </div> 
+            {pickedCase && cases[pickedCase] && (
+                <CaseChatBot 
+                    pickedCase={cases[pickedCase]}
+                    pickedCaseName={pickedCase} 
+                />
+            )}
             <style>{` 
                 .nav-link.active {
                     --bs-nav-tabs-link-active-bg : #cfe2ff;  
