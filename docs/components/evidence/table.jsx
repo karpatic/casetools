@@ -7,13 +7,12 @@ import EvidenceUpload from './upload.jsx';
 import localforage from 'localforage';
 
 // evidence, setEvidence 
-const EvidenceTable = ({ cases, setCases, pickedCase }) => { 
+const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => { 
     const [evidence, setEvidence] = React.useState(cases[pickedCase]?.evidence || []);
     const [packetNumber, setPacketNumber] = React.useState(Math.max(...Object.keys(cases[pickedCase])
     .filter(key => key.startsWith('evidencePacket_'))
     .map(key => parseInt(key.split('_')[1]))));
     const [searchFilter, setSearchFilter] = React.useState("");  
-    const [showPdf, setShowPdf] = React.useState(false);
     const [pdfUrl, setPdfUrl] = React.useState(null);  
     const [showUpload, setShowUpload] = React.useState(false); 
     const tableRef = useRef(null); 
@@ -99,7 +98,6 @@ const EvidenceTable = ({ cases, setCases, pickedCase }) => {
             if (file) {
                 const url = URL.createObjectURL(file);
                 setPdfUrl(url);
-                setShowPdf(true);
             } else {
                 alert('File not found in local storage');
             }
@@ -144,6 +142,23 @@ const EvidenceTable = ({ cases, setCases, pickedCase }) => {
                 maxWidth: "90%",
                 columns: [
                     { title: "Packet #", field: "evidencePacket", editor: "input", headerFilter: "input" },
+                    { title: "Markup", 
+                        field: "markup", 
+                        formatter:  (cell) => {
+                            const button = document.createElement("button");
+                            button.innerHTML = "Markup";
+                            button.className = "btn btn-secondary btn-sm";
+                            button.onclick = async () => {
+                                const row = cell.getRow();
+                                const fileName = row.getData().fileName;
+                                setMarkupFilename(fileName);
+                                viewPdf(fileName); 
+                            };
+                            return button;
+                        }, 
+                        hozAlign: "center", 
+                        headerSort: false 
+                    },
                     { title: "Create Title", 
                         field: "createTitle", 
                         formatter: (cell, formatterParams, onRendered) => {
@@ -218,31 +233,7 @@ const EvidenceTable = ({ cases, setCases, pickedCase }) => {
                         }, 
                         hozAlign: "center", 
                         headerSort: false 
-                    }, 
-                    { title: "Markup", 
-                        field: "markup", 
-                        formatter:  (cell) => {
-                            const button = document.createElement("button");
-                            button.innerHTML = "Markup";
-                            button.className = "btn btn-secondary btn-sm";
-                            button.onclick = async () => {
-                                const row = cell.getRow();
-                                const fileName = row.getData().fileName;
-                                try {
-                                    const response = {}
-                                    console.log('todo')
-                                    if (!response.ok) throw new Error('Request failed');
-                                    alert('Markup file created');
-                                } catch (error) {
-                                    console.error(error);
-                                    alert('Error processing markup');
-                                }
-                            };
-                            return button;
-                        }, 
-                        hozAlign: "center", 
-                        headerSort: false 
-                    },
+                    },  
                     { title: "Error", field: "error", editor: "input", width: 100  },
                     { title: "Personal Statement Given By", field: "personalStatementGivenBy", editor: "input", width: 100  },
                     { title: "Expert Statement Given By", field: "expertStatementGivenBy", editor: "input", width: 100  },
@@ -302,7 +293,6 @@ const EvidenceTable = ({ cases, setCases, pickedCase }) => {
     };
 
     const closePdfViewer = () => {
-        setShowPdf(false);
         setPdfUrl(null);
     };
 
@@ -345,7 +335,7 @@ const EvidenceTable = ({ cases, setCases, pickedCase }) => {
                     </div>
                 </div>
             </div>
-            { showPdf && ( 
+            { pdfUrl && ( 
                 <iframe
                 src={pdfUrl}
                 title="PDF Viewer"

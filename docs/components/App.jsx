@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom'; 
 import localforage from 'localforage';
 import JSZip from 'jszip';
-// /* Components */
 import CaseBasics from './case/basics.jsx';
 import EvidencePackets from './evidence/packets.jsx';
 import PdfTools from './PdfTools.jsx'; 
@@ -297,7 +296,8 @@ const App = () => {
                         <li><b>PDF Tools:</b> Merge Pdfs Quick.</li>
                         <li><b>ChatBot:</b> Talk to a chatbot that knows about your case</li> 
                     </ul>
-                    <p>To get started, provide an OpenAi API Key and create a new case! Be aware: Data and Uploaded files live in your browser and only gets sent to OpenAI's ChatGPT to service the app (nowhere else).</p>
+                    <p>To get started, provide an OpenAi API Key and create a new case! 
+                    Be aware: Data and Uploaded files live in your browser and only gets sent to OpenAI's ChatGPT to service the app (nowhere else).</p>
                 </div>
                 <div className="mb-4"> 
                     <div className="input-group">

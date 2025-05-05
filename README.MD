@@ -17,6 +17,7 @@ The project file structure is organized as follows:
 │   ├── components/
 │   │   ├── case/
 │   │   │   └── basics.jsx
+│   │   │   └── chatbot.jsx
 │   │   ├── evidence/
 │   │   │   ├── packets.jsx
 │   │   │   └── upload.jsx

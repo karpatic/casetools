@@ -19,6 +19,7 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
     const [currentCase, setCurrentCase] = React.useState(cases[pickedCase] || {}); 
     const [activeTab, setActiveTab] = React.useState(null); 
     const [packetData, setPacketData] = React.useState(null);
+    const [markupFilename, setMarkupFilename] = React.useState(null);
 
     React.useEffect(() => { 
         setCurrentCase(cases[pickedCase] || {});
@@ -288,13 +289,16 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
                         cases={cases}
                         setCases={setCases}
                         pickedCase={pickedCase} 
+                        setMarkupFilename={setMarkupFilename}
                     />
                 </div>
             </div> 
             {pickedCase && cases[pickedCase] && (
                 <CaseChatBot 
-                    pickedCase={cases[pickedCase]}
+                    cases={cases}
+                    setCases={setCases} 
                     pickedCaseName={pickedCase} 
+                    markupFilename={markupFilename}
                 />
             )}
             <style>{` 

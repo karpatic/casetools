@@ -92,7 +92,7 @@ async function callChatGPT(messages, json = true) {
     }
 
     const body = {
-      model: "gpt-4o",  // Update to the desired model
+      model: "gpt-4.1",
       messages: messages,
       max_tokens: 4000,
       temperature: 0,
