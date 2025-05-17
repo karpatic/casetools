@@ -24,8 +24,13 @@
     \textbf{$attorney.city$} \\
     \textbf{Telephone $attorney.phone$} \\
     \textbf{$attorney.email$} \\
-    \textbf{EOIR ID\# $attorney.eoir_id$} \\
-    \textbf{Attorney for Respondent}
+    \textbf{EOIR ID\# $attorney.eoir_id$} \\ 
+    $if(document.multipleRespondents)$
+      \textit{Attorney for Respondents}
+    $else$
+      \textit{Attorney for Respondent}
+    $endif$ 
+
   \end{flushleft}
   
   \vspace{2em}
@@ -53,9 +58,9 @@
       \vspace{.0em} & \\ 
 
       $for(respondents)$
-        \textbf{$it.full_name$} & \textbf{\hspace{1em}$it.file_number$} \\
+        \textbf{$it.full_name$} & \textbf{\hspace{1em}$it.file_number$} \\ \\
         $if(it.status)$ 
-          $if(it.count)$ 
+          $if(document.multipleRespondents)$
             \vspace{.0em} & \\ 
             \textit{\textbf{Respondents}}
           $else$

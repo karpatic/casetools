@@ -1,7 +1,6 @@
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 
-GlobalWorkerOptions.workerSrc =
-  "https:///mozilla.github.io/pdf.js/build/pdf.worker.mjs"; 
+GlobalWorkerOptions.workerSrc = "https://mozilla.github.io/pdf.js/build/pdf.worker.mjs"; 
 
 async function pdfPageToImage(file, page = 0) { 
     // create a file reader

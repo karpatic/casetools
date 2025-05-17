@@ -1,11 +1,7 @@
 // CaseBasics.js
 import React from "react";
-import {
-  processMessage,
-  extractTextFromEvidence,
-} from "./../../utils/gpt/chatbot.js";
-import localforage from "localforage";
-
+import { processMessage, composePrompt, getPreMadeMessages, getLegalContext } from "./../../utils/gpt/chatbot.js"; 
+import { markupDocument, extractTextFromEvidence} from "../../utils/pdf/markup.js";
 const CaseChatBot = ({ pickedCaseName, markupFilename, cases, setCases }) => {
   const [conversation, setConversation] = React.useState([]);
   const [inputMsg, setInputMsg] = React.useState("");
@@ -22,124 +18,67 @@ const CaseChatBot = ({ pickedCaseName, markupFilename, cases, setCases }) => {
       messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
   }, [conversation]);
 
-  // returns parts of the final prompt text.
-  const getLegalContext = () => {
-    const pickedCase = cases[pickedCaseName];
-    // console.log('CaseChatBot getLegalContext', { pickedCase, pickedCaseName });
-    const { basics } = pickedCaseName || {};
-    const {
-      caseFacts = "",
-      attorney = { name: "", phone: "", email: "" },
-      cover = { cover_name: "", cover_location: "" },
-      certificate = { certificate_name: "", certificate_location_address: "" },
-      respondent = { full_name: "", file_number: "", status: "" },
-      judge = { hearing_date: "", hearing_time: "" },
-    } = basics || {};
-    const basicsText = `
-Legal Case Work:
-Case Facts: ${caseFacts}.
-Attorney: ${attorney?.name} (Phone: ${attorney?.phone}, Email: ${attorney?.email}).
-Cover: ${cover?.cover_name}, ${cover?.cover_location}.
-Certificate = { certificate_name: "", certificate_location_address: "" }, 
-Respondent: ${respondent?.full_name} (File Number: ${respondent?.file_number}, Status: ${respondent?.status}).
-Hearing Date & Time: ${judge?.hearing_date} at ${judge?.hearing_time}.
-`;
-    const evidence = pickedCase?.evidence || [];
-    // Build a summary for evidence by iterating over all items.
-    let evidenceSummary =
-      evidence
-        ?.map((item) => {
-          return `
-Title: ${item.title}
-Type: ${item.type}
-AI Opinion: ${item.aiOpinion}
-Summary: ${item.summary}
-`;
-        })
-        .join("\n\n") || "";
-
-    const finalPrompt = `        
-${basicsText}
-
-Evidence Overview:
-${evidenceSummary}
-`;
-    return finalPrompt;
-  };
+  // Add useEffect to open chat when markupFilename changes
+  React.useEffect(() => {
+    // Check if markupFilename exists and changed (not first render)
+    if (markupFilename) {
+      setShowChat(true);
+    }
+  }, [markupFilename]);
 
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!inputMsg.trim()) return;
     // If editing, truncate conversation up to the edited message index.
-    const baseConversation =
-      editMessageIndex !== null
-        ? conversation.slice(0, editMessageIndex)
-        : conversation;
+    const baseConversation = editMessageIndex == null ? conversation : conversation.slice(0, editMessageIndex)
     const newConv = [...baseConversation, { role: "user", content: inputMsg }];
     setConversation(newConv);
-    setIsLoading(true);
-    try {
-      const response = await processMessage(newConv);
-      console.log("CaseChatBot sendMessage response", { tet: response });
-      // Store both the chat message and any structured data in the conversation
-      setConversation([
-        ...newConv,
-        {
-          role: "assistant",
-          content: response.chatmessage,
-          data: response.data,
-        },
-      ]);
+    setIsLoading(true); 
+    const response = await processMessage(newConv);
+    console.log("CaseChatBot sendMessage response", { tet: response });
+    // Store both the chat message and any structured data in the conversation
+    setConversation([
+      ...newConv,
+      {
+        role: "assistant",
+        content: response.chatmessage,
+        data: response.data,
+      },
+    ]);
 
-      // Update the cases state with the new evidence if it exists
-      if (response.data) {
-        const updatedCases = {
-          ...cases,
-          [pickedCaseName]: {
-            ...cases[pickedCaseName],
-            evidence: cases[pickedCaseName].evidence.map((item) => {
-              if (item.fileName === markupFilename) {
-                return { ...item, extractedSelections: response.data };
-              }
-              return item;
-            }),
-          },
-        };
-        setCases(updatedCases);
-      }
-
-      setInputMsg("");
-      setEditMessageIndex(null);
-    } catch (error) {
-      console.error("Error sending message:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    // Mark up the document if the response contains data
+    if (response.data) { 
+ 
+      let updatedCases = { ...cases }; 
+      let evidenceIndex = cases[pickedCaseName].evidence.findIndex((item) => item.fileName == markupFilename);
+      let evidenceObj = { ...cases[pickedCaseName].evidence[evidenceIndex], extractedSelections: response.data };
+      await markupDocument(evidenceObj); 
+      updatedCases[pickedCaseName].evidence[evidenceIndex] = evidenceObj; 
+      setCases(updatedCases);
+    } 
+    setInputMsg("");
+    setEditMessageIndex(null); 
+    setIsLoading(false); 
   };
-
-  // Function to extract text with progress tracking
-  const extractTextWithProgress = async (evidenceObj) => {
-    setExtractionProgress({ isExtracting: true, progress: 0 });
-    setPageProgress(null);
-    const extractedText = await extractTextFromEvidence(
-      evidenceObj,
-      (progress, pageInfo) => {
-        setExtractionProgress((prev) => ({ isExtracting: true, progress }));
-        if (pageInfo && pageInfo.totalPages) {
-          setPageProgress([pageInfo.totalPages, pageInfo.currentPage]);
-        }
-      }
-    );
-    setExtractionProgress({ isExtracting: false, progress: 0 });
-    setPageProgress(null);
-    return extractedText;
-  };
-
-  // Get or extract text from evidence - updates state if extraction is needed
+  
+  // Get or extract text from evidence with progress tracking 
+  // Update the case state with extracted text
   const getExtractedText = async (evidenceObj) => {
-    let extractedText = evidenceObj.extractedText;
-    if (!extractedText) {
-      extractedText = await extractTextWithProgress(evidenceObj);
+    let extractedText = evidenceObj?.extractedText; 
+    if (!extractedText) { 
+      setExtractionProgress({ isExtracting: true, progress: 0 });
+      setPageProgress(null); 
+      extractedText = await extractTextFromEvidence(
+        evidenceObj,
+        (progress, pageInfo) => {
+          setExtractionProgress((prev) => ({ isExtracting: true, progress }));
+          if (pageInfo && pageInfo.totalPages) {
+            setPageProgress([pageInfo.totalPages, pageInfo.currentPage]);
+          }
+        }
+      ); 
+      setExtractionProgress({ isExtracting: false, progress: 0 });
+      setPageProgress(null); 
       const updatedEvidence = { ...evidenceObj, extractedText };
       const pickedCase = cases[pickedCaseName];
       const updatedCases = {
@@ -158,67 +97,18 @@ ${evidenceSummary}
 
   const resetChat = async () => {
     const pickedCase = cases[pickedCaseName];
-    console.log("CaseChatBot resetChat: ", { pickedCase, markupFilename });
-    let finalPrompt = `
-You are the legal assistant for an attorney. 
-You will help with a case that that we will referr to as the '${pickedCaseName}' case: 
-You are having a conversation with the user about the case.
-
-You return a json object with the following the format below:
-
-{
-      chatmessage: "A chat message for the user."
-}
-
-Here is the following information about the case:
-
-${getLegalContext()}
-`;
+    console.log("CaseChatBot resetChat: ", { pickedCase, markupFilename }); 
+    const legalContext = getLegalContext(cases, pickedCaseName); 
+    let finalPrompt;
+    let evidenceObj = null;
+    let extractedText = null;
+    // Handle document markup case
     if (markupFilename) {
       console.log("CaseChatBot resetChat", pickedCase.evidence);
-      const evidenceObj = pickedCase.evidence.find(
-        (item) => item.fileName == markupFilename
-      );
-      const extractedSelections = evidenceObj?.extractedSelections || "None";
-
-      // Update the evidence object with extracted text.
-      const extractedText = await getExtractedText(evidenceObj);
-      const rawText = JSON.stringify(extractedText);
-
-      finalPrompt += `
-
-Today you have been tasked specifically with discussing and marking up a document.
-
-The document will be given to you as an array of json objects containing the text and bounding box coordinates of each line of text.
-
-You will talk with the user about potential quotes that could be used in the case.
-
-When the users asks you to perform the 'mark up', or to 'mark it up', you will return a filtered list of the json objects.
-
-Your response will be in the following format:
-
-{
-      chatmessage: "A chat message for the user.",
-      data: [
-        { y1: 0, x1: 0, x2: 0, phrase: "Line one of a sentence that", page: 1 },
-        { y1: 0, x1: 0, x2: 0, phrase: "goes on to two lines.", page: 1 }
-      ]
-}
-If a quote spans multiple lines, include all lines.
-
-You will never return the data attribute unless the user has asked you to 'mark it up', which you can remind them to do.
-
-The documents name is: 
-
-${markupFilename}
-
-Here is the text of the document in a json object array format:
-
-${rawText}
-
-
-`;
-    }
+      evidenceObj = pickedCase.evidence.find( (item) => item.fileName == markupFilename ); 
+      extractedText = await getExtractedText(evidenceObj);  
+    }  
+    finalPrompt = composePrompt(pickedCaseName, legalContext, evidenceObj, extractedText); 
     setConversation([{ role: "system", content: finalPrompt }]);
     setInputMsg("");
     setEditMessageIndex(null);
@@ -228,38 +118,9 @@ ${rawText}
     resetChat();
   }, [pickedCaseName, markupFilename]);
 
-  const preMadeMessages = markupFilename
-    ? [
-        {
-          label: "Quotes",
-          message: "Give me the best quotes supporting the case.",
-        },
-        {
-          label: "Markup",
-          message: `Markup the document for the best supporting quotes.`,
-        },
-        { label: "Questions", message: "Summarize this document." },
-      ]
-    : [
-        {
-          label: "Opinion",
-          message: "What are your opinions on the case? Be critical.",
-        },
-        {
-          label: "Explore",
-          message: "What questions should I be asking my client?",
-        },
-        { label: "SWOT", message: "Please perform a SWOT analysis." },
-        {
-          label: "Research",
-          message: "What information would help to know more about?",
-        },
-        {
-          label: "Deep Research",
-          message:
-            "I want to use [OpenAI](https://chat.openai.com) to perform deep research. Can you help me create a prompt for this task? First perform a SWOT analysis on the existing evidence and then present to me three questions I could benefit asking ChatGPT to perform deep research on.",
-        },
-      ];
+  // Get pre-made messages from the utility function
+  const preMadeMessages = getPreMadeMessages(markupFilename);
+
   const insertPreMadeMessage = (msg) => {
     setInputMsg(msg);
   };
@@ -504,7 +365,7 @@ ${rawText}
                   <div style={{ fontWeight: "bold" }}>
                     {pageProgress
                       ? `Extracting text from page ${pageProgress[1]} of ${pageProgress[0]}...`
-                      : "Extracting text from document..."}
+                      : "Please wait. Extracting text from document at ~8 seconds a page..."}
                   </div>
                 </div>
               )}

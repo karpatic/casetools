@@ -1,5 +1,5 @@
 import {createTableOfContentsYaml, createCaseMetadataYaml} from './createTableOfContents.js'; 
-import pdfMerge from './pdf/merge.js';   
+import pdfMerge from './pdf/merge.js';
 import {sanitizeForKey} from './utils.js';
 import localforage from 'localforage';  
 import numberPages from './pdf/numberPages.js';
@@ -67,7 +67,15 @@ async function createPacket(selectedCase, pickedCase, packetKey) {
         
         // Get and number the PDF file
         const localForageFileLabel = `${pickedCase}_${sanitizeForKey(evidence.fileName)}`;
-        const pdfFile = await localforage.getItem(localForageFileLabel);
+        // Check for markup version first
+        const markupFileLabel = localForageFileLabel.replace(/\.pdf$/, "_markup.pdf");
+        let pdfFile = await localforage.getItem(markupFileLabel);
+        
+        // If markup doesn't exist, fall back to the original file
+        if (!pdfFile) {
+            pdfFile = await localforage.getItem(localForageFileLabel);
+        }
+        
         const pdfBytes = await pdfFile.arrayBuffer();
         const numberedPdfBytes = await numberPages(pdfBytes, currentPage);
         
@@ -79,8 +87,9 @@ async function createPacket(selectedCase, pickedCase, packetKey) {
         // Check if the exhibit is too large
         const size = (await preparedExhibit.save()).length;
         // if (currentChunkSize + size > 26214400) { // 25MB chunk size
-        //     alert('Evidence packet is too large. Please reduce the number of exhibits.');
-        //     return { error: 'Evidence packet is too large. Please reduce the number of exhibits.' };
+        //     const sizeInMB = (currentChunkSize + size) / (1024 * 1024);
+        //     alert('Evidence packet is too large. Please reduce the number of exhibits.' + sizeInMB.toFixed(2) + ' MB');
+        //     // return { error: 'Evidence packet is too large. Please reduce the number of exhibits.' };
         // }
         currentChunkSize += size;
 

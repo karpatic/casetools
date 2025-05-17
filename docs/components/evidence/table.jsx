@@ -14,13 +14,25 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
     .map(key => parseInt(key.split('_')[1]))));
     const [searchFilter, setSearchFilter] = React.useState("");  
     const [pdfUrl, setPdfUrl] = React.useState(null);  
-    const [showUpload, setShowUpload] = React.useState(false); 
-    const tableRef = useRef(null); 
+    const [pdfFilename, setPdfFilename] = React.useState(null);
+    const [showUpload, setShowUpload] = React.useState(false);  
 
     // update evidence when cases[pickedCase].evidence changes
-    React.useEffect(() => {
-        setEvidence(cases[pickedCase]?.evidence || []);
+    React.useEffect(() => { 
+        setEvidence(cases[pickedCase]?.evidence || []); 
+        if(pdfFilename) { viewPdf(pdfFilename); }
     }, [cases[pickedCase]?.evidence]);
+
+    React.useEffect(() => {
+        console.log('CASES UPDATED', cases);
+        if(pdfFilename) { viewPdf(pdfFilename); }
+    }, [cases]);
+        
+
+    React.useEffect(() => { 
+        console.log('PDF FILENAME UPDATED', pdfFilename);
+        if (pdfFilename) { viewPdf(pdfFilename); } 
+    }, [pdfFilename] );
 
     const dateEditor = (cell, onRendered, success, cancel) => {
         const cellValue = cell.getValue() ? cell.getValue().split('/').reverse().join('-') : '';
@@ -91,20 +103,13 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
         return input;
     };
     const viewPdf = async (fileName) => {
-        try {
-            let fname = sanitizeForKey(fileName);
-            const fileKey = `${pickedCase}_${fname}`;
-            const file = await localforage.getItem(fileKey);
-            if (file) {
-                const url = URL.createObjectURL(file);
-                setPdfUrl(url);
-            } else {
-                alert('File not found in local storage');
-            }
-        } catch (error) {
-            console.error('Error fetching file from local forage:', error);
-            alert('Error fetching file');
-        }
+        console.log('viewPdf', fileName); 
+        let fname = sanitizeForKey(fileName);
+        const fileKey = `${pickedCase}_${fname}`; 
+        let file = await localforage.getItem(fileKey.replace(/\.pdf$/, "_markup.pdf")) ||
+            await localforage.getItem(fileKey); 
+        const url = URL.createObjectURL(file);
+        setPdfUrl(url); 
     };
 
     const highlightRowAndColumn = (cell) => {
@@ -131,7 +136,7 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
 
     React.useEffect(() => {
         //  item.evidencePacket == packetNumber
-        let filteredEvidence = evidence.filter(item => (item.fileName.includes(searchFilter) || item.title.includes(searchFilter)));
+        let filteredEvidence = evidence.filter(item => (item.fileName?.includes(searchFilter) || item.title?.includes(searchFilter)));
 
         // Initialize Tabulator and store the instance in the variable
         if (!tabulatorInstance) {
@@ -152,7 +157,7 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
                                 const row = cell.getRow();
                                 const fileName = row.getData().fileName;
                                 setMarkupFilename(fileName);
-                                viewPdf(fileName); 
+                                setPdfFilename(fileName); 
                             };
                             return button;
                         }, 
@@ -195,7 +200,7 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
                         button.onclick = () => {
                             const row = cell.getRow();
                             const fileName = row.getData().fileName;
-                            viewPdf(fileName);
+                            setPdfFilename(fileName);  
                         };
                         return button;
                     }, hozAlign: "center", headerSort: false },

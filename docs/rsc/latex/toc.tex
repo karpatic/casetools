@@ -6,9 +6,8 @@
 \usepackage{longtable}  % Add this package for multi-page tables
 \usepackage[utf8]{inputenc}
 \usepackage[table,xcdraw]{xcolor}
- 
+
 \pagestyle{empty}
- 
 
 \begin{document}
 
@@ -27,32 +26,27 @@
 \makebox[0.5\textwidth]{\hrulefill}
 \begin{flushleft}
     \begin{tabular}{ p{0.50\textwidth} | p{0.50\textwidth} }
-      
       $if(document.multipleRespondents)$
         \textbf{In the Matter of:} & \textbf{\hspace{1em}File No.:} \\
       $else$
         \textbf{In the Matter of:} \\
       $endif$ 
-
       \vspace{.0em} & \\ 
-
       $for(respondents)$
-        \textbf{$it.full_name$} & \textbf{\hspace{1em}$it.file_number$} \\
+        \textbf{$it.full_name$} & \textbf{\hspace{1em}$it.file_number$} \\ \\
         $if(it.status)$ 
-          $if(it.count)$ 
+          $if(document.multipleRespondents)$
             \vspace{.0em} & \\ 
             \textit{\textbf{Respondents}}
           $else$
             \textit{\textbf{Respondent}} 
           $endif$ 
           \textbf{$it.status$}
-
           $if(it.count)$ 
             \vspace{.25em} & \\
           $endif$
         $endif$    
       $endfor$
-
     \end{tabular}
 \end{flushleft}
 \makebox[0.5\textwidth]{\hrulefill}

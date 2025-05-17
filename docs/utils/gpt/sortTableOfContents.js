@@ -1,4 +1,4 @@
-// import { callChatGPT } from './../gpt/gpt.js';
+import { callChatGPT } from './../gpt/gpt.js';
 
 /*
 SAMPLE RECORD: 
