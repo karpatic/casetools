@@ -5,26 +5,29 @@ import localforage from 'localforage';
 async function extractTextFromEvidence(evidenceObj, progressCallback = null) {
   // Check if the text is already extracted
   let desiredOutput = evidenceObj?.extractedText;
+  // Only perform OCR if extractedText doesn't exist // if (!desiredOutput) {
+  const evidenceStorageKey = evidenceObj?.storageKey || "";  
+  const evidence = await localforage.getItem(evidenceStorageKey); 
+  console.log('Extracting text from evidence', { evidence });
   
-  // Only perform OCR if extractedText doesn't exist
-  if (!desiredOutput) {
-    const evidenceStorageKey = evidenceObj?.storageKey || "";  
-    const evidence = await localforage.getItem(evidenceStorageKey); 
-    console.log('Extracting text from evidence', { evidence });
-    
-    // Perform OCR with progress reporting
-    const tesseractOutput = await ocr(evidence, progressCallback);
-    
-    // Process the OCR output
-    desiredOutput = tesseractOutput.map(item => {  
-      const sentenceObj = item.lines.map(line => { 
-        const { text, bbox } = line;
-        return { text, bbox, page: item.page };
+  // Perform OCR with progress reporting
+  const tesseractOutput = await ocr(evidence, progressCallback);  
+  // console.log("Tesseract OCR output:", tesseractOutput);
+  
+  // Process the OCR output
+  desiredOutput = tesseractOutput.map((item, pageIndex) => {  
+    const lineObjects = item.lines.map(line => { 
+      const { text, bbox, words } = line;
+      // FILTER WORDS FOR JUST THE WORD AND BBOX
+      let filteredWords = words.map(word => {
+        const { text: wordText, bbox: wordBbox } = word;
+        return { text: wordText, bbox: wordBbox };
       });
-      return sentenceObj;
+      return { pageNumber: pageIndex + 1, lineText: text, words: filteredWords };
     });
-  }
-  
+    return lineObjects;
+  }); 
+  console.log("Processed OCR output:", desiredOutput);
   return desiredOutput;
 }
 
@@ -32,7 +35,9 @@ async function markupDocument(evidenceObj) {
   console.log("Markup document", { evidenceObj });
   let { extractedSelections, storageKey } = evidenceObj;
   
-  const pdfFile = await localforage.getItem(storageKey);  
+  // Always use the original PDF file, not the markup version
+  const originalKey = storageKey.replace(/_markup\.pdf$/, ".pdf");
+  const pdfFile = await localforage.getItem(originalKey);  
   const pdfBytes = await pdfFile.arrayBuffer(); 
   const pdfDoc = await PDFDocument.load(pdfBytes);
   const pages = pdfDoc.getPages(); 
@@ -41,6 +46,7 @@ async function markupDocument(evidenceObj) {
   const ocrScaleFactor = 1.5;
   
   for (const selection of extractedSelections) {
+    console.log("Processing selection", selection);
     const { page, text, x1, x2, y1 } = selection; 
 
     console.log("Markup selection", { page, text, x1, x2, y1 });
@@ -79,7 +85,7 @@ async function markupDocument(evidenceObj) {
   }
   
   const modifiedPdfBytes = await pdfDoc.save();
-  const newKey = storageKey.replace(/\.pdf$/, "_markup.pdf");
+  const newKey = originalKey.replace(/\.pdf$/i, "_markup.pdf");
   const newPdf = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
   await localforage.setItem(newKey, newPdf);
   return newPdf;

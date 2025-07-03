@@ -106,8 +106,8 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
         console.log('viewPdf', fileName); 
         let fname = sanitizeForKey(fileName);
         const fileKey = `${pickedCase}_${fname}`; 
-        let file = await localforage.getItem(fileKey.replace(/\.pdf$/, "_markup.pdf")) ||
-            await localforage.getItem(fileKey); 
+        let file = await localforage.getItem(fileKey.replace(/\.pdf$/i, "_markup.pdf")) ||
+            await localforage.getItem(fileKey);
         const url = URL.createObjectURL(file);
         setPdfUrl(url); 
     };
@@ -174,12 +174,12 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
                                 const row = cell.getRow();
                                 const fileName = row.getData().fileName;
                                 try {
-                                    const title = await getTitle(cases, pickedCase, fileName);
-                                    console.log('Generated Title:', title);
+                                    const titleObj = await getTitle(cases, pickedCase, fileName);
+                                    console.log('Generated Title:', titleObj);
                                     // now update evidence
                                     const updatedEvidence = [...evidence];
-                                    const rowIndex = row.getPosition();
-                                    updatedEvidence[rowIndex] = { ...updatedEvidence[rowIndex], ...title };
+                                    const rowIndex = row.getPosition() -1;
+                                    updatedEvidence[rowIndex] = { ...updatedEvidence[rowIndex], ...titleObj };
                                     setEvidence(updatedEvidence);
                                 } catch (error) {
                                     console.error('Error generating title:', error);
@@ -238,7 +238,56 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
                         }, 
                         hozAlign: "center", 
                         headerSort: false 
-                    },  
+                    },
+                    { title: "Clear", 
+                        field: "clear", 
+                        formatter: (cell, formatterParams, onRendered) => {
+                            const row = cell.getRow();
+                            const data = row.getData();
+                            
+                            // Only show button if extractedSelections exist
+                            if (!data.extractedSelections || data.extractedSelections.length === 0) {
+                                return "";
+                            }
+                            
+                            const button = document.createElement("button");
+                            button.innerHTML = "Clear Markup";
+                            button.className = "btn btn-warning btn-sm";
+                            button.onclick = async () => {
+                                const fileName = data.fileName;
+                                const fileKey = `${pickedCase}_${sanitizeForKey(fileName)}`;
+                                const markupKey = fileKey.replace(/\.pdf$/i, "_markup.pdf");
+
+                                console.log('Clearing Markup:', markupKey); 
+                                await localforage.removeItem(markupKey); 
+                                
+                                // Remove extractedSelections from evidence
+                                const updatedEvidence = evidence.map(item => {
+                                    if (item.fileName === fileName) {
+                                        const { extractedSelections, ...rest } = item;
+                                        return rest;
+                                    }
+                                    return item;
+                                });
+                                setEvidence(updatedEvidence);
+                                setCases(prevCases => ({
+                                    ...prevCases,
+                                    [pickedCase]: {
+                                        ...prevCases[pickedCase],
+                                        evidence: updatedEvidence
+                                    }
+                                }));
+                                
+                                // Refresh PDF viewer if this file is currently being viewed
+                                if (pdfFilename === fileName) {
+                                    viewPdf(fileName);
+                                }
+                            };
+                            return button;
+                        }, 
+                        hozAlign: "center", 
+                        headerSort: false 
+                    },
                     { title: "Error", field: "error", editor: "input", width: 100  },
                     { title: "Personal Statement Given By", field: "personalStatementGivenBy", editor: "input", width: 100  },
                     { title: "Expert Statement Given By", field: "expertStatementGivenBy", editor: "input", width: 100  },

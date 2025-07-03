@@ -39,9 +39,9 @@ function composePrompt(caseName, legalContext, evidenceObj = null, extractedText
 
   Today you have been tasked specifically with discussing and marking up a pdf document.
 
-  Tesseract.js was used to capture the bounding box and text of each line in the pdf.
+  Tesseract.js was used to capture the bounding box and text of each word in the pdf grouped by line.
 
-  You will use this information to help the user find quotes that are relevant to the case.
+  You will use this information to help the user find complete quotes that are relevant to the case.
 
   When the users asks you to 'mark up' the pdf or 'mark it up', return a json object with the following format:
 
@@ -57,9 +57,13 @@ function composePrompt(caseName, legalContext, evidenceObj = null, extractedText
 
   1. You only return the data attribute if the user has specifically asked you to 'mark it up'. 
   
-  2. the data list your return must include the quotes previously approved for mark up.
+  2. the data list your return must include the quotes previously approved for mark up. 
 
-  3. It is common for quotes to span multiple entries in the json object array. In this case, you should return every entry in the json object array that is part of the quote.
+  3. Make sure to highlight entire sentences in preference over partial or incomplete sentences; even if they span multiple lines.
+
+  4. Ensure only the bounds highlighted words are included, even if there are more words on the line, so pay attention to the x1, x2, and y1 values.
+
+  5. If you are asked to highlight a specific line or piece of text, return everything plus that.
 
   The documents name is: 
   

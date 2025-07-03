@@ -7,6 +7,8 @@ async function ocrPage(page, lang) {
     const { data } = await Tesseract.recognize(canvas, lang, {
         logger: m => m.progress && console.log(`OCR: ${Math.round(m.progress * 100)}%`)
     });
+
+    console.log("OCR data:", data);
     
     // Enhance the bbox data to include all coordinates
     data.lines = data.lines.map(line => {

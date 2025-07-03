@@ -151,6 +151,18 @@ const App = () => {
                     } else {
                         console.log('File not found in zip:', filePath);
                     }
+
+                    // Check for and load markup version
+                    const markupFileName = e.fileName.replace(/\.pdf$/i, "_markup.pdf");
+                    const markupFilePath = `marked_evidence/${markupFileName}`;
+                    if (zip.files[markupFilePath]) {
+                        const sanitizedFilename = sanitizeForKey(e.fileName);
+                        const markupKey = `${caseName}_${sanitizedFilename}`.replace(/\.pdf$/i, "_markup.pdf");
+                        const markupBlob = await zip.files[markupFilePath].async('arraybuffer');
+                        const markupFormattedBlob = new Blob([markupBlob], { type: 'application/pdf' });
+                        console.log('Saving markup:', markupKey);
+                        await localforage.setItem(markupKey, markupFormattedBlob);
+                    }
                 }
             }
 
@@ -207,6 +219,8 @@ const App = () => {
             const evidence = caseData.evidence;
             if (evidence) {
                 const evidenceFolder = zip.folder("evidence");
+                const markedEvidenceFolder = zip.folder("marked_evidence");
+                
                 for (let i = 0; i < evidence.length; i++) {
                     const e = evidence[i];
                     const fileKey = `${casename}_${sanitizeForKey(e.fileName)}`;
@@ -218,10 +232,23 @@ const App = () => {
                         const fileBlob = new Blob([await file.arrayBuffer()], { type: mimeType });
                         evidenceFolder.file(e.fileName, fileBlob);
                     }
+
+                    // Check for and include markup version
+                    const markupKey = fileKey.replace(/\.pdf$/i, "_markup.pdf");
+                    const markupFile = await localforage.getItem(markupKey);
+                    if (markupFile) {
+                        const markupFileName = e.fileName.replace(/\.pdf$/i, "_markup.pdf");
+                        const markupBlob = new Blob([await markupFile.arrayBuffer()], { type: 'application/pdf' });
+                        markedEvidenceFolder.file(markupFileName, markupBlob);
+                    }
                 }
             }
 
-            // Save compiled packets
+            // Save Marked up PDFs
+            
+
+
+            // Save compiled packet
             const packetKeys = Object.keys(caseData).filter(k => k.startsWith('evidencePacket_'));
             console.log('packetKeys:', packetKeys);
             for (let i = 0; i < packetKeys.length; i++) {

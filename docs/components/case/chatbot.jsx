@@ -64,7 +64,7 @@ const CaseChatBot = ({ pickedCaseName, markupFilename, cases, setCases }) => {
   // Get or extract text from evidence with progress tracking 
   // Update the case state with extracted text
   const getExtractedText = async (evidenceObj) => {
-    let extractedText = evidenceObj?.extractedText; 
+    let extractedText = evidenceObj?.extractedText; // false;
     if (!extractedText) { 
       setExtractionProgress({ isExtracting: true, progress: 0 });
       setPageProgress(null); 

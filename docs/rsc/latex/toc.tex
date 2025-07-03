@@ -33,17 +33,22 @@
       $endif$ 
       \vspace{.0em} & \\ 
       $for(respondents)$
-        \textbf{$it.full_name$} & \textbf{\hspace{1em}$it.file_number$} \\ \\
-        $if(it.status)$ 
-          $if(document.multipleRespondents)$
-            \vspace{.0em} & \\ 
-            \textit{\textbf{Respondents}}
-          $else$
+        $if(document.multipleRespondents)$
+          \textbf{$it.full_name$} & \textbf{\hspace{1em}$it.file_number$} \\
+          $if(it.status)$ 
+            \textit{\textbf{Respondents}} & \textbf{$it.status$} \\
+            $if(it.count)$ 
+              & \\
+            $endif$
+          $endif$
+        $else$
+          \textbf{$it.full_name$} & \textbf{\hspace{1em}$it.file_number$} \\ \\
+          $if(it.status)$ 
             \textit{\textbf{Respondent}} 
-          $endif$ 
-          \textbf{$it.status$}
-          $if(it.count)$ 
-            \vspace{.25em} & \\
+            \textbf{$it.status$}
+            $if(it.count)$ 
+              \vspace{.25em} & \\
+            $endif$
           $endif$
         $endif$    
       $endfor$
