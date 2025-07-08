@@ -134,6 +134,44 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
 
     let tabulatorInstance = null; // Replace ref with a variable
 
+    const calculateTabLetter = (evidencePacket, sortId) => {
+        if (!evidencePacket || !sortId) return '';
+        
+        const packetKey = `evidencePacket_${evidencePacket}`;
+        const packetConfig = cases[pickedCase]?.[packetKey];
+        
+        if (!packetConfig || !packetConfig.startLetter) return '';
+        
+        const startLetter = packetConfig.startLetter.toUpperCase();
+        const sortIdNum = parseInt(sortId);
+        
+        if (isNaN(sortIdNum) || sortIdNum < 1) return '';
+        
+        // Calculate tab letter (A=1, B=2, etc.)
+        const tabIndex = sortIdNum - 1;
+        const startCharCode = startLetter.charCodeAt(0);
+        const tabCharCode = startCharCode + tabIndex;
+        
+        // Handle single letters (A-Z)
+        if (tabCharCode <= 90) {
+            return String.fromCharCode(tabCharCode);
+        }
+        
+        // Handle double letters (AA-ZZ)
+        const doubleLetterRange = 26; // AA through ZZ
+        if (tabCharCode <= 90 + doubleLetterRange) {
+            const overflow = tabCharCode - 90;
+            const overflowLetter = String.fromCharCode(64 + overflow);
+            return overflowLetter + overflowLetter;
+        }
+        
+        // Handle triple letters (AAA, BBB, etc.)
+        const tripleLetterStart = 90 + doubleLetterRange + 1;
+        const tripleOverflow = tabCharCode - tripleLetterStart + 1;
+        const tripleOverflowLetter = String.fromCharCode(64 + tripleOverflow);
+        return tripleOverflowLetter + tripleOverflowLetter + tripleOverflowLetter;
+    };
+
     React.useEffect(() => {
         //  item.evidencePacket == packetNumber
         let filteredEvidence = evidence.filter(item => (item.fileName?.includes(searchFilter) || item.title?.includes(searchFilter)));
@@ -147,6 +185,17 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
                 maxWidth: "90%",
                 columns: [
                     { title: "Packet #", field: "evidencePacket", editor: "input", headerFilter: "input" },
+                    { title: "Tab", 
+                        field: "tab", 
+                        formatter: (cell) => {
+                            const row = cell.getRow();
+                            const data = row.getData();
+                            return calculateTabLetter(data.evidencePacket, data.sortId);
+                        },
+                        width: 60,
+                        hozAlign: "center",
+                        headerSort: false
+                    },
                     { title: "Markup", 
                         field: "markup", 
                         formatter:  (cell) => {
@@ -322,7 +371,7 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
                 tabulatorInstance = null;
             }
         };
-    }, [evidence, packetNumber, searchFilter]);
+    }, [evidence, packetNumber, searchFilter, cases]);
 
     const saveEvidence = () => {
         const newCases = JSON.parse(JSON.stringify(cases));

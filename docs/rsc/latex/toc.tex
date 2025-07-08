@@ -36,7 +36,8 @@
         $if(document.multipleRespondents)$
           \textbf{$it.full_name$} & \textbf{\hspace{1em}$it.file_number$} \\
           $if(it.status)$ 
-            \textit{\textbf{Respondents}} & \textbf{$it.status$} \\
+            \textit{\textbf{Respondents}} & \\
+            \textbf{$it.status$} & \\
             $if(it.count)$ 
               & \\
             $endif$
