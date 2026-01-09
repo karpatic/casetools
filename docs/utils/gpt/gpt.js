@@ -29,7 +29,7 @@ async function callVisionGPT(imagePaths, system = false, user = false, json = fa
     }));
 
     const body = {
-      model: 'gpt-4o',
+      model: 'gpt-5.2',
       messages: [
         { role: 'system',
           content: [

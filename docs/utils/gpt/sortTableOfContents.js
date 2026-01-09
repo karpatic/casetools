@@ -24,9 +24,6 @@ SAMPLE RECORD:
 
 async function sortTableOfContents(evidence, sortInstructions='') {
   
-    // group by packetNumber
-
-
     // Prepare messages for ChatGPT
     const messages = [
         {
@@ -68,9 +65,21 @@ like so { fileNames : ['1wx0xjiz9n.pdf', '1wx0xjiz9n.Png', '1wx0xjiz9n.PDF']
 
     // for each arr in arrOfarr, call ChatGPT 
     setUserMessage(evidence);   
-    let order = await callChatGPT(messages, true);    
-    let sortedEvidence = order.fileNames.map(fName => evidence.find(item => item.fileName == fName));
-    sortedEvidence.forEach((item, index) => item.sortId = index+1);   
+    let order = await callChatGPT(messages, true);
+
+    const fileNames = Array.isArray(order?.fileNames) ? order.fileNames : [];
+    const byName = new Map(evidence.map(e => [e.fileName, e]));
+
+    const gptNotInEvidence = fileNames.filter(n => !byName.has(n));
+    const evidenceNotInGpt = evidence.filter(e => !fileNames.includes(e.fileName)).map(e => e.fileName);
+    if (gptNotInEvidence.length || evidenceNotInGpt.length) console.warn('sortTableOfContents mismatch:', { gptNotInEvidence, evidenceNotInGpt });
+
+    const sortedEvidence = [
+        ...fileNames.map(n => byName.get(n)).filter(Boolean),
+        ...evidence.filter(e => !fileNames.includes(e.fileName)),
+    ];
+
+    sortedEvidence.forEach((item, i) => (item.sortId = i + 1));
     return sortedEvidence;
 }
 
