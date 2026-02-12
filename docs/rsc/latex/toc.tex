@@ -43,9 +43,10 @@
             $endif$
           $endif$
         $else$
-          \textbf{$it.full_name$} & \textbf{\hspace{1em}$it.file_number$} \\ \\
+          \textbf{$it.full_name$} & \textbf{\hspace{1em}$it.file_number$} \\
           $if(it.status)$ 
-            \textit{\textbf{Respondent}} 
+            \vspace{.0em} & \\ 
+            \textit{\textbf{Respondent}} \\
             \textbf{$it.status$}
             $if(it.count)$ 
               \vspace{.25em} & \\

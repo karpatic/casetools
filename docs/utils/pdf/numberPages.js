@@ -12,12 +12,13 @@ async function numberPages(pdfBytes, startNumber) {
     const page = pages[i];
     const { width, height } = page.getSize();
 
-    // Add the page number at the bottom center
+    // Add the page number at the bottom center (bigger + bolder)
     page.drawText(`Page ${pageNumber}`, {
-      x: width / 2 - 50, // Adjust X for horizontal centering
+      x: width / 2 - 60, // Adjust X for horizontal centering
       y: 20,             // Position near the bottom
-      size: 12,
-      color: rgb(0, 0, 0), // Black color
+      size: 16,           
+      color: rgb(0, 0, 0), 
+      font: await pdfDoc.embedFont('Helvetica-Bold'),
     });
 
     pageNumber++;

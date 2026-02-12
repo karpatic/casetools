@@ -94,11 +94,12 @@ async function createPacket(selectedCase, pickedCase, packetKey) {
         currentChunkSize += size;
 
         const pages = parseInt(evidence.pages || 1);
+        const endPage = currentPage + pages - 1;
         const exhibit = {
             exhibit: await preparedExhibit.save(),
             letter,
             title: evidence.title,
-            pageRange: `${currentPage} - ${currentPage + pages - 1}`
+            pageRange: currentPage == endPage ? `${currentPage}` : `${currentPage} - ${endPage}`
         };
         
         exhibitList.push(exhibit);
