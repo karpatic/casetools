@@ -3,6 +3,7 @@ import localforage from 'localforage';
 
 import { sanitizeForKey } from './../../utils/utils.js'; 
 import {getTitle} from './../../utils/gpt/getTitle.js' 
+import { isImageFile, imageFileToA4PdfBlob } from './../../utils/pdf/imageToPdf.js';
 
 
 const EvidenceUpload = ({ pickedCase, cases, setCases }) => { 
@@ -51,23 +52,33 @@ const EvidenceUpload = ({ pickedCase, cases, setCases }) => {
             setCurrentFileIndex(i); 
             setUploadProgress(Math.round((i / files.length) * 100)); 
 
-            const file = files[i];  
+            const file = files[i];
+            const shouldConvertImage = isImageFile(file);
+
+            const finalFileName = shouldConvertImage
+                ? file.name.replace(/\.(jpe?g|png)$/i, '.pdf')
+                : file.name;
+
+            const storageBlob = shouldConvertImage
+                ? await imageFileToA4PdfBlob(file)
+                : file;
+
             // Store file in localForage 
-            const sanitizedFilename = sanitizeForKey(file.name); 
+            const sanitizedFilename = sanitizeForKey(finalFileName); 
             const storageKey = `${pickedCase}_${sanitizedFilename}`; 
-            await localforage.setItem(storageKey, file); 
+            await localforage.setItem(storageKey, storageBlob); 
             
             // Update evidence list. just one 
-            const oldFile = newEvidence.find(evidence => evidence.fileName === file.name); 
+            const oldFile = newEvidence.find(evidence => evidence.fileName === finalFileName); 
             if (!oldFile || !oldFile['title']){ 
-                newEvidence = newEvidence.filter(evidence => evidence.fileName !== file.name); 
-                const titleObj = await getTitle(cases, pickedCase, file.name); 
+                newEvidence = newEvidence.filter(evidence => evidence.fileName !== finalFileName);
+                const titleObj = await getTitle(cases, pickedCase, finalFileName);
                 let finalObj = { 
                     ...titleObj, 
-                    fileName: file.name, 
+                    fileName: finalFileName,
                     storageKey: storageKey, 
                     evidencePacket: lastPacketNumber, 
-                    fileSize: file.size, 
+                    fileSize: storageBlob.size,
                 } 
                 newEvidence.push(finalObj); 
             }  
@@ -86,7 +97,7 @@ const EvidenceUpload = ({ pickedCase, cases, setCases }) => {
             <div className="mb-3">
                 <div className="mb-2">
                     <label className="me-3">Select individual files:</label>
-                    <input type="file" multiple onChange={handleFileChange} className="form-control" />
+                    <input type="file" multiple accept="application/pdf,image/jpeg,image/jpg,image/png" onChange={handleFileChange} className="form-control" />
                 </div>
                 
                 <div>
