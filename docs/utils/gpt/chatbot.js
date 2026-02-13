@@ -127,7 +127,7 @@ function getLegalContext(cases, pickedCaseName) {
     attorney = { name: "", phone: "", email: "" },
     cover = { cover_name: "", cover_location: "" },
     certificate = { certificate_name: "", certificate_location_address: "" },
-    respondent = { full_name: "", file_number: "", status: "" },
+    respondent = { full_name: "", file_numbers: [], status: "" },
     judge = { hearing_date: "", hearing_time: "" },
   } = basics || {};
   const basicsText = `
@@ -136,7 +136,7 @@ function getLegalContext(cases, pickedCaseName) {
   Attorney: ${attorney?.name} (Phone: ${attorney?.phone}, Email: ${attorney?.email}).
   Cover: ${cover?.cover_name}, ${cover?.cover_location}.
   Certificate = { certificate_name: "", certificate_location_address: "" }, 
-  Respondent: ${respondent?.full_name} (File Number: ${respondent?.file_number}, Status: ${respondent?.status}).
+  Respondent: ${respondent?.full_name} (File Numbers: ${respondent?.file_numbers.join(", ")}, Status: ${respondent?.status}).
   Hearing Date & Time: ${judge?.hearing_date} at ${judge?.hearing_time}.
   `;
   const evidence = pickedCase?.evidence || [];

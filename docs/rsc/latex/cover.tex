@@ -46,7 +46,7 @@
    
 \makebox[0.5\textwidth]{\hrulefill}
 \begin{flushleft}
-    \begin{tabular}{ p{0.50\textwidth} | p{0.50\textwidth} }
+  \begin{tabular}{ p{0.50\textwidth} | p{0.50\textwidth} }
 
 
       $if(document.multipleRespondents)$
@@ -59,7 +59,11 @@
 
       $for(respondents)$
         $if(document.multipleRespondents)$
-          \textbf{$it.full_name$} & \textbf{\hspace{1em}$it.file_number$} \\
+          \textbf{\parbox[t]{\linewidth}{\vspace{0pt}\raggedright
+            $it.full_name$
+          }} & {\bfseries \parbox[t]{\linewidth}{\vspace{0pt}\raggedright
+            $it.file_number_one$$for(it.file_numbers_rest)$\\$it$$endfor$
+          }} \\
           $if(it.status)$ 
             \textit{\textbf{Respondents}} & \\
             \textbf{$it.status$} & \\
@@ -68,7 +72,11 @@
             $endif$
           $endif$
         $else$
-          \textbf{$it.full_name$} & \textbf{\hspace{1em}$it.file_number$} \\
+          \textbf{\parbox[t]{\linewidth}{\vspace{0pt}\raggedright
+            $it.full_name$
+          }} & {\bfseries \parbox[t]{\linewidth}{\vspace{0pt}\raggedright
+            $it.file_number_one$$for(it.file_numbers_rest)$\\$it$$endfor$
+          }} \\
           $if(it.status)$ 
             \vspace{.0em} & \\ 
             \textit{\textbf{Respondent}} \\

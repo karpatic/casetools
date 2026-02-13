@@ -38,6 +38,31 @@ const CaseBasics = ({ cases, setCases, pickedCase }) => {
     const handleConfigChange = (e) => {
         const { name, value } = e.target;
 
+        // Special handling for respondent file_numbers array: respondent[0].file_numbers[1]
+        const fileNumMatches = name.match(/respondent\[(\d+)\]\.file_numbers\[(\d+)\]/);
+        if (fileNumMatches) {
+            const respondentIndex = parseInt(fileNumMatches[1]);
+            const fileNumIndex = parseInt(fileNumMatches[2]);
+            setConfig(prevConfig => {
+                const newConfig = { ...prevConfig };
+                newConfig.respondents = newConfig.respondents || [];
+                while (newConfig.respondents.length <= respondentIndex) newConfig.respondents.push({});
+
+                const respondent = { ...(newConfig.respondents[respondentIndex] || {}) };
+                const fileNumbers = [...(respondent.file_numbers || [])];
+                while (fileNumbers.length <= fileNumIndex) fileNumbers.push('');
+                fileNumbers[fileNumIndex] = value;
+                respondent.file_numbers = fileNumbers;
+                newConfig.respondents[respondentIndex] = respondent;
+
+                if (saveTimeoutId) clearTimeout(saveTimeoutId);
+                const timeoutId = setTimeout(() => saveConfig(newConfig), 500);
+                setSaveTimeoutId(timeoutId);
+                return newConfig;
+            });
+            return;
+        }
+
         // Special handling for respondents array
         if (name.startsWith('respondent[')) {
             // Extract index and field name from format respondent[0].full_name
@@ -108,7 +133,35 @@ const CaseBasics = ({ cases, setCases, pickedCase }) => {
         setConfig(prevConfig => {
             const newConfig = { ...prevConfig };
             newConfig.respondents = newConfig.respondents || [];
-            newConfig.respondents.push({ full_name: '', file_number: '', status: '' });
+            newConfig.respondents.push({ full_name: '', file_numbers: [''], status: '' });
+            return newConfig;
+        });
+    };
+
+    const addRespondentFileNumber = (respondentIndex) => {
+        setConfig(prevConfig => {
+            const newConfig = { ...prevConfig };
+            newConfig.respondents = newConfig.respondents || [];
+            while (newConfig.respondents.length <= respondentIndex) newConfig.respondents.push({});
+            const respondent = { ...(newConfig.respondents[respondentIndex] || {}) };
+            const fileNumbers = [...(respondent.file_numbers || [])];
+            fileNumbers.push('');
+            respondent.file_numbers = fileNumbers;
+            newConfig.respondents[respondentIndex] = respondent;
+            return newConfig;
+        });
+    };
+
+    const removeRespondentFileNumber = (respondentIndex, fileNumIndex) => {
+        setConfig(prevConfig => {
+            const newConfig = { ...prevConfig };
+            const respondents = [...(newConfig.respondents || [])];
+            const respondent = { ...(respondents[respondentIndex] || {}) };
+            const fileNumbers = [...(respondent.file_numbers || [])];
+            fileNumbers.splice(fileNumIndex, 1);
+            respondent.file_numbers = fileNumbers;
+            respondents[respondentIndex] = respondent;
+            newConfig.respondents = respondents;
             return newConfig;
         });
     };
@@ -296,15 +349,40 @@ const CaseBasics = ({ cases, setCases, pickedCase }) => {
                                                 onChange={handleConfigChange} 
                                             />
                                         </div>
-                                        <div className="mb-3 d-flex align-items-center">
-                                            <label className="form-label me-2">File Number:</label>
-                                            <input 
-                                                type="text" 
-                                                className="form-control" 
-                                                name={`respondent[${index}].file_number`} 
-                                                value={respondent.file_number || ''} 
-                                                onChange={handleConfigChange} 
-                                            />
+                                        <div className="mb-3">
+                                            <label className="form-label">File Number(s):</label>
+                                            {(() => {
+                                                const fileNums = (respondent.file_numbers && respondent.file_numbers.length)
+                                                    ? respondent.file_numbers
+                                                    : [''];
+                                                return fileNums.map((fileNum, fileNumIndex) => (
+                                                    <div key={fileNumIndex} className="input-group mb-2">
+                                                        <input
+                                                            type="text"
+                                                            className="form-control"
+                                                            name={`respondent[${index}].file_numbers[${fileNumIndex}]`}
+                                                            value={fileNum || ''}
+                                                            onChange={handleConfigChange}
+                                                        />
+                                                        {fileNums.length > 1 && (
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-outline-danger"
+                                                                onClick={() => removeRespondentFileNumber(index, fileNumIndex)}
+                                                            >
+                                                                Remove
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ));
+                                            })()}
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm btn-outline-success"
+                                                onClick={() => addRespondentFileNumber(index)}
+                                            >
+                                                Add File Number
+                                            </button>
                                         </div>
                                         <div className="mb-3 d-flex align-items-center">
                                             <label className="form-label me-2">Status:</label>

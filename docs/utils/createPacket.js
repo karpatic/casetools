@@ -28,14 +28,14 @@ async function createPacket(selectedCase, pickedCase, packetKey) {
 
     // Step 1A. CERTIFICATE - Creates certificate.pdf      
     const PANDOC_URL = 'https://getfrom.net/pdf/pandoc'
-    let latex = await fetch('rsc/latex/certificate.tex').then(res => res.text()); 
+    let latex = await fetch('rsc/latex/certificate.tex', { cache: 'no-store' }).then(res => res.text()); 
     let resp = await fetch(PANDOC_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, latex }),
     });  
     const certificatePdf = await getPdfFromResponse(resp);  // Blob {size: 69041, type: 'application/pdf'}    
 
     // // Step 1B. COVER
-    latex = await fetch('rsc/latex/cover.tex').then(res => res.text()); 
+    latex = await fetch('rsc/latex/cover.tex', { cache: 'no-store' }).then(res => res.text()); 
     let resptwo = await fetch(PANDOC_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, latex }),
     });
@@ -111,7 +111,7 @@ async function createPacket(selectedCase, pickedCase, packetKey) {
     // Step 3A. Create the TOC
     text = createTableOfContentsYaml(config, exhibitList, packetConfig); 
     console.log('TableOfContentsYaml:\n', text)
-    latex = await fetch('rsc/latex/toc.tex').then(res => res.text());   
+    latex = await fetch('rsc/latex/toc.tex', { cache: 'no-store' }).then(res => res.text());   
     let response = await fetch(PANDOC_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

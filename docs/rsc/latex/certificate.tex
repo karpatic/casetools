@@ -17,8 +17,15 @@
 
 \begin{document}
 
+% First file number is inline with the fullname. all numbers float right.
 $for(respondents)$
-\noindent\textbf{\large $it.full_name$} \hfill \textbf{File No.: $it.file_number$} \\
+  \noindent
+  \textbf{$it.full_name$} \hfill \textbf{$it.file_number_one$}
+  $for(it.file_numbers_rest)$
+    \\
+    \makebox[\linewidth][r]{\textbf{$it$}}
+  $endfor$
+  \\
 $endfor$
 
 \vspace{2em}

@@ -66,7 +66,7 @@ The `cases` object is a collection of case data, where each key is a case name a
       "respondents": [
         {
           "full_name": "string",
-          "file_number": "string",
+          "file_numbers": ["string"],
           "status": "string"
         }
       ],

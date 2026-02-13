@@ -1,5 +1,4 @@
 function createCaseContentsYaml(tableOfContents) {   
-    console.log('createCaseContentsYaml - tableOfContents:', tableOfContents); 
     let createRecord = entry =>
         `  - letter: "${entry.letter}"\n    title: "${entry.title.replace(/"/g, '\\"')}"\n    pageRange: "${entry.pageRange}"`;
     let tocYaml = "contents:\n" + tableOfContents.map(createRecord).join("\n");
@@ -13,7 +12,7 @@ function createCaseMetadataYaml(config, packetConfig) {
     let respondentCount = config?.respondents?.reduce((acc, r) => {
         acc[r.status] = (acc[r.status] || 0) + 1;
         return acc;
-    }, {}); 
+    }, {});
 
     let f = {
         ...config?.attorney||{},
@@ -68,10 +67,13 @@ certificate:
     certificate_location_statezip: "${f.certificate_location_statezip}" 
     
 respondents:
-${config?.respondents?.map(r => `  - full_name: "${r.full_name}"
-    file_number: "${r.file_number}"
-    count:  "${ respondentCount[r.status] }"
-    status: "${r.status}"`).join('\n')} 
+${config?.respondents?.map(r => { 
+    return `  - full_name: "${(r.full_name || '').replace(/"/g, '\\"')}"
+    file_number_one: "${r.file_numbers[0]}"
+    file_numbers_rest:${`\n${r.file_numbers.slice(1).map(fn => `      - "${fn}"`).join('\n')}`}
+    count: ${respondentCount[r.status] || 0}
+    status: "${(r.status || '').replace(/"/g, '\\"')}"`;
+}).join('\n')} 
 
 judge:
     judge_name: "${f.judge_name}"
@@ -80,8 +82,7 @@ judge:
 
 document:
     title: "${f.packetTitle}"
-    multipleRespondents: "${Object.keys(respondentCount).length > 1 ? 'true' : ''}"
-`; 
+${Object.keys(respondentCount).length > 1 ? '    multipleRespondents: "true"\n' : ''}`; 
 
     return dataYaml;
 }
