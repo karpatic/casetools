@@ -3,6 +3,7 @@ import pdfMerge from './pdf/merge.js';
 import {sanitizeForKey} from './utils.js';
 import localforage from 'localforage';  
 import numberPages from './pdf/numberPages.js';
+import fitPdfToLetter from './pdf/fitToLetter.js';
 
 
 // todo: add filesize as a metadata attribute. 
@@ -76,7 +77,13 @@ async function createPacket(selectedCase, pickedCase, packetKey) {
             pdfFile = await localforage.getItem(localForageFileLabel);
         }
         
-        const pdfBytes = await pdfFile.arrayBuffer();
+        let pdfBytes = await pdfFile.arrayBuffer();
+
+        // Normalize page size BEFORE any overlays (page numbers, etc.)
+        if (packetConfig?.fitToSameDimensions) {
+            pdfBytes = await fitPdfToLetter(pdfBytes);
+        }
+
         const numberedPdfBytes = await numberPages(pdfBytes, currentPage);
         
         // Get and merge with letter file

@@ -7,19 +7,24 @@ import EvidenceTable from './table.jsx';
 import CaseChatBot from './../case/chatbot.jsx';
 import sortTableOfContents from './../../utils/gpt/sortTableOfContents.js'; 
 import createPacket from '../../utils/createPacket.js'; 
+import LoadingModal from './../LoadingModal.jsx';
+
+const DEFAULT_PACKET = {
+    startPage: '',
+    startLetter: '',
+    sortInstructions: '',
+    titleInstructions: '',
+    packetTitle: '',
+    fitToSameDimensions: true,
+};
 
 const EvidencePackets = ({ cases, setCases, pickedCase }) => {
-    const [newPacket, setNewPacket] = React.useState({
-        startPage: '',
-        startLetter: '',
-        sortInstructions: '',
-        titleInstructions: '',
-        packetTitle: ''
-    }); 
+    const [newPacket, setNewPacket] = React.useState(() => ({ ...DEFAULT_PACKET }));
     const [currentCase, setCurrentCase] = React.useState(cases[pickedCase] || {}); 
     const [activeTab, setActiveTab] = React.useState(null); 
     const [packetData, setPacketData] = React.useState(null);
     const [markupFilename, setMarkupFilename] = React.useState(null);
+    const [compiling, setCompiling] = React.useState(false);
 
     React.useEffect(() => { 
         setCurrentCase(cases[pickedCase] || {});
@@ -29,12 +34,29 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
         const savedPacketKey = localStorage.getItem('selectedEvidencePacket');
         if (savedPacketKey && cases[pickedCase] && cases[pickedCase][savedPacketKey]) {
             setActiveTab(savedPacketKey);
-            setNewPacket(cases[pickedCase][savedPacketKey]);
+            setNewPacket({ ...DEFAULT_PACKET, ...cases[pickedCase][savedPacketKey] });
         }
         else{
             setActiveTab(null);
         }
     }, [cases, pickedCase]);
+
+    const fitToSameDimensionsCheckbox = (id) => (
+        <div className="mb-3">
+            <div className="form-check">
+                <input
+                    className="form-check-input"
+                    type="checkbox"
+                    id={id}
+                    checked={!!newPacket.fitToSameDimensions}
+                    onChange={e => setNewPacket({ ...newPacket, fitToSameDimensions: e.target.checked })}
+                />
+                <label className="form-check-label" htmlFor={id}>
+                    Fit all pages to the same dimensions
+                </label>
+            </div>
+        </div>
+    );
     
     React.useEffect(() => {
         // contains packetData.{certificatePdf, evidencePacketPdf}
@@ -59,14 +81,8 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
         newCases[pickedCase][`evidencePacket_${packetNumber}`] = newPacket;
         setCases(newCases);
         setCurrentCase(newCases[pickedCase]);
-        
-        setNewPacket({
-            startPage: '',
-            startLetter: '',
-            sortInstructions: '',
-            titleInstructions: '',
-            packetTitle: ''
-        }); 
+
+        setNewPacket({ ...DEFAULT_PACKET });
     };
 
     const savePacket = (packetKey) => {
@@ -91,7 +107,7 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
             localStorage.removeItem('selectedEvidencePacket');
             return;
         }
-        setNewPacket(cases[pickedCase][packetKey]);
+        setNewPacket({ ...DEFAULT_PACKET, ...cases[pickedCase][packetKey] });
         setActiveTab(packetKey);
         localStorage.setItem('selectedEvidencePacket', packetKey);
     };
@@ -101,13 +117,7 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
             setActiveTab(null);
             return;
         }
-        setNewPacket({
-            startPage: '',
-            startLetter: '',
-            sortInstructions: '',
-            titleInstructions: '',
-            packetTitle: '' // Reset packetTitle
-        }); 
+        setNewPacket({ ...DEFAULT_PACKET });
         setActiveTab('new');
     }; 
 
@@ -128,18 +138,36 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
     const createPacketHandler = async (packetKey) => {
         console.log('createPacketStateHandler:', packetKey); 
 
-        // packetResult = { certificatePdf: Blob {size: 69041, type: 'application/pdf'}, evidencePacketPdf: Blob }
-        const packetResult = await createPacket(cases[pickedCase], pickedCase, packetKey); 
-        
-        // Save to localForage
-        const compiledPacketKey = `compiled_case_${pickedCase}_${packetKey}`;
-        console.log('createPacketHandler:', {compiledPacketKey});
-        await localforage.setItem(compiledPacketKey, packetResult);
- 
+        setCompiling(true);
 
-        showToast('Packet created'); 
-        setActiveTab(null);
-        setTimeout(() => setActiveTab(packetKey), 0);
+        // Compile using the latest UNSAVED edits. This ensures that users see the most up-to-date version of their packet, even if they forget to click "Save Changes" before compiling.
+        // This does not SAVE the changes. Just compiles.
+        try {
+            const updatedSelectedCase = {
+                ...cases[pickedCase],
+                [packetKey]: newPacket,
+            };
+
+            setCases(prevCases => ({
+                ...prevCases,
+                [pickedCase]: updatedSelectedCase,
+            }));
+            setCurrentCase(updatedSelectedCase);
+
+            // packetResult = { certificatePdf: Blob {size: 69041, type: 'application/pdf'}, evidencePacketPdf: Blob }
+            const packetResult = await createPacket(updatedSelectedCase, pickedCase, packetKey);
+
+            // Save to localForage
+            const compiledPacketKey = `compiled_case_${pickedCase}_${packetKey}`;
+            console.log('createPacketHandler:', {compiledPacketKey});
+            await localforage.setItem(compiledPacketKey, packetResult);
+
+            showToast('Packet created');
+            setActiveTab(null);
+            setTimeout(() => setActiveTab(packetKey), 0);
+        } finally {
+            setCompiling(false);
+        }
  
     };  
 
@@ -160,6 +188,7 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
 
     return (
         <div> 
+            <LoadingModal show={compiling} title="Compiling packet" />
             <ul className="nav nav-tabs">
                 {Object.keys(currentCase).filter(key => key.startsWith('evidencePacket_')).map((packetKey, index) => (
                     <li className="nav-item" key={index}>
@@ -198,6 +227,7 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
                                 <label className="form-label me-2">Start Letter:</label>
                                 <input type="text" className="form-control" name="startLetter" value={newPacket.startLetter} onChange={e => setNewPacket({ ...newPacket, startLetter: e.target.value })} />
                             </div> 
+                            {fitToSameDimensionsCheckbox(`${packetKey}_fitToSameDimensions`)}
                             <div className="mb-3 d-flex align-items-center">
                                 <label className="form-label me-2">Title Instructions:</label>
                                 <textarea className="form-control" name="titleInstructions" value={newPacket.titleInstructions} onChange={e => setNewPacket({ ...newPacket, titleInstructions: e.target.value })} style={{height : '160px' }} />
@@ -229,6 +259,7 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
                                 <label className="form-label me-2">Start Letter:</label>
                                 <input type="text" className="form-control" name="startLetter" value={newPacket.startLetter} onChange={e => setNewPacket({ ...newPacket, startLetter: e.target.value })} />
                             </div>
+                            {fitToSameDimensionsCheckbox('new_fitToSameDimensions')}
                             <div className="mb-3 d-flex align-items-center">
                                 <label className="form-label me-2">Title Instructions:</label>
                                 <textarea className="form-control" name="titleInstructions" value={newPacket.titleInstructions} onChange={e => setNewPacket({ ...newPacket, titleInstructions: e.target.value })} style={{height : '160px' }} />

@@ -4,6 +4,7 @@ import localforage from 'localforage';
 import { sanitizeForKey } from './../../utils/utils.js'; 
 import {getTitle} from './../../utils/gpt/getTitle.js' 
 import { isImageFile, imageFileToA4PdfBlob } from './../../utils/pdf/imageToPdf.js';
+import LoadingModal from './../LoadingModal.jsx';
 
 
 const EvidenceUpload = ({ pickedCase, cases, setCases }) => { 
@@ -94,6 +95,21 @@ const EvidenceUpload = ({ pickedCase, cases, setCases }) => {
 
     return (
         <div>
+            <LoadingModal show={uploading} title="Processing evidence">
+                <div className="progress mb-2">
+                    <div 
+                        className="progress-bar" 
+                        role="progressbar" 
+                        style={{width: `${uploadProgress}%`}} 
+                        aria-valuenow={uploadProgress} 
+                        aria-valuemin="0" 
+                        aria-valuemax="100"
+                    >
+                        {uploadProgress}%
+                    </div>
+                </div>
+                <p>Uploading file {currentFileIndex + 1} of {files.length}: {files[currentFileIndex]?.name}</p>
+            </LoadingModal>
             <div className="mb-3">
                 <div className="mb-2">
                     <label className="me-3">Select individual files:</label>
@@ -133,24 +149,6 @@ const EvidenceUpload = ({ pickedCase, cases, setCases }) => {
                             ))}
                         </ul>
                     </div>
-                </div>
-            )}
-
-            {uploading && (
-                <div className="mb-3">
-                    <div className="progress mb-2">
-                        <div 
-                            className="progress-bar" 
-                            role="progressbar" 
-                            style={{width: `${uploadProgress}%`}} 
-                            aria-valuenow={uploadProgress} 
-                            aria-valuemin="0" 
-                            aria-valuemax="100"
-                        >
-                            {uploadProgress}%
-                        </div>
-                    </div>
-                    <p>Uploading file {currentFileIndex + 1} of {files.length}: {files[currentFileIndex]?.name}</p>
                 </div>
             )}
 
