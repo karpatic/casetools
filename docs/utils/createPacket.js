@@ -69,7 +69,7 @@ async function createPacket(selectedCase, pickedCase, packetKey) {
         // Get and number the PDF file
         const localForageFileLabel = `${pickedCase}_${sanitizeForKey(evidence.fileName)}`;
         // Check for markup version first
-        const markupFileLabel = localForageFileLabel.replace(/\.pdf$/, "_markup.pdf");
+        const markupFileLabel = localForageFileLabel.replace(/\.pdf$/i, "_markup.pdf");
         let pdfFile = await localforage.getItem(markupFileLabel);
         
         // If markup doesn't exist, fall back to the original file

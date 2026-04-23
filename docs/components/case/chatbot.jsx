@@ -49,12 +49,18 @@ const CaseChatBot = ({ pickedCaseName, markupFilename, cases, setCases }) => {
     // Mark up the document if the response contains data
     if (response.data) { 
  
-      let updatedCases = { ...cases }; 
       let evidenceIndex = cases[pickedCaseName].evidence.findIndex((item) => item.fileName == markupFilename);
       let evidenceObj = { ...cases[pickedCaseName].evidence[evidenceIndex], extractedSelections: response.data };
       await markupDocument(evidenceObj); 
-      updatedCases[pickedCaseName].evidence[evidenceIndex] = evidenceObj; 
-      setCases(updatedCases);
+      setCases(prevCases => ({
+        ...prevCases,
+        [pickedCaseName]: {
+          ...prevCases[pickedCaseName],
+          evidence: prevCases[pickedCaseName].evidence.map(item =>
+            item.fileName === markupFilename ? evidenceObj : item
+          ),
+        },
+      }));
     } 
     setInputMsg("");
     setEditMessageIndex(null); 

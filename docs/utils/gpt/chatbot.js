@@ -63,7 +63,9 @@ function composePrompt(caseName, legalContext, evidenceObj = null, extractedText
 
   4. Ensure only the bounds highlighted words are included, even if there are more words on the line, so pay attention to the x1, x2, and y1 values.
 
-  5. If you are asked to highlight a specific line or piece of text, return everything plus that.
+  5. In the markup data you return, x1 is the left x coordinate, x2 is the right x coordinate, and y1 is the top y coordinate. If you use OCR bbox values, map bbox.x0 to x1, bbox.x1 to x2, and bbox.y0 to y1.
+
+  6. If you are asked to highlight a specific line or piece of text, return everything plus that.
 
   The documents name is: 
   
