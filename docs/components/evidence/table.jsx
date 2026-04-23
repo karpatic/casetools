@@ -5,6 +5,7 @@ import { sanitizeForKey } from './../../utils/utils.js';
 import {getTitle} from './../../utils/gpt/getTitle.js' 
 import EvidenceUpload from './upload.jsx';
 import localforage from 'localforage';
+import { extractHighlightsFromPdf, updateEvidenceMarkupMetadata } from './../../utils/pdf/markup.js';
 
 const PDFJS_CASE_VIEWER_URL = './pdfjs-case-viewer.html';
 
@@ -164,6 +165,13 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
         const annotatedPdf = new Blob([bytes], { type: 'application/pdf' });
         await localforage.setItem(pdfDocument.fileKey, annotatedPdf);
         await localforage.removeItem(pdfDocument.markupKey);
+        let highlightedSelections = null;
+
+        try {
+            highlightedSelections = await extractHighlightsFromPdf(annotatedPdf);
+        } catch (error) {
+            console.warn(`Could not extract highlighted text from ${fileName}:`, error);
+        }
 
         pdfDocumentRef.current = {
             ...pdfDocument,
@@ -173,7 +181,11 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
 
         const updatedEvidence = evidenceRef.current.map(item => (
             item.fileName === fileName
-                ? { ...item, storageKey: pdfDocument.fileKey, fileSize: annotatedPdf.size }
+                ? updateEvidenceMarkupMetadata({
+                    ...item,
+                    storageKey: pdfDocument.fileKey,
+                    fileSize: annotatedPdf.size
+                }, highlightedSelections)
                 : item
         ));
         setEvidence(updatedEvidence);
@@ -184,7 +196,11 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
                 evidence: updatedEvidence
             }
         }));
-        setPdfViewerStatus(`Saved annotations into ${fileName}.`);
+        setPdfViewerStatus(
+            Array.isArray(highlightedSelections)
+                ? `Saved annotations into ${fileName}. Recorded ${highlightedSelections.length} highlighted quote${highlightedSelections.length === 1 ? '' : 's'}.`
+                : `Saved annotations into ${fileName}.`
+        );
     };
 
     React.useEffect(() => {

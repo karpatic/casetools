@@ -112,6 +112,16 @@ The `upload.jsx` component handles the uploading of evidence files. Users can se
 
 Displays the evidence metadata in a table with buttons to view evidence, and update/ delete evidence.
 
+### Markup
+
+Markup is represented in two places: the annotated PDF bytes and the evidence metadata. The evidence metadata field `extractedSelections` stores highlighted quote data such as `text`, `page`, coordinates, and usually `bbox`, so the chatbot and table controls know what has already been approved for markup.
+
+Without the AI service, users open a PDF from the evidence table in the PDF.js viewer and use PDF.js annotation tools directly. Clicking `Save to CaseTools` serializes the PDF.js annotations with `pdfDocument.saveDocument()`, overwrites the original evidence PDF in localForage, removes any stale `_markup.pdf` sidecar, and attempts to extract highlighted text back into `extractedSelections`.
+
+With the AI service, the chatbot OCRs the evidence PDF and asks the model to return markup selections. `markupDocument()` converts those OCR-space selections into PDF.js Highlight annotations with `QuadPoints`, saves them as a `_markup.pdf` sidecar, and the viewer prefers that sidecar when opening the evidence. Upload and import paths also try to read existing PDF highlight annotations and store the highlighted text as `extractedSelections`.
+
+The compiler does not recreate markup. `createPacket.js` first uses the `_markup.pdf` sidecar when present, otherwise it uses the original evidence PDF. If `fitToSameDimensions` is enabled, `fitToLetter.js` scales pages and annotations together before page numbering and packet merge, so saved PDF.js highlights remain visible in compiled packets.
+
 
 ### Libraries and Dependencies
 - React: The primary library for building the user interface.

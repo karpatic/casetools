@@ -1,15 +1,16 @@
-import { AnnotationEditorType, getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+import { AnnotationEditorType, AnnotationType, getDocument, GlobalWorkerOptions, Util } from 'pdfjs-dist';
 import ocr from './../pdf/ocr.js';
 import localforage from 'localforage';
 
 const PDFJS_WORKER_SRC = 'https://mozilla.github.io/pdf.js/build/pdf.worker.mjs';
 const OCR_SCALE_FACTOR = 1.5;
-const HIGHLIGHT_ANNOTATION_TYPE = AnnotationEditorType?.HIGHLIGHT ?? 9;
+const HIGHLIGHT_ANNOTATION_TYPE = AnnotationEditorType?.HIGHLIGHT ?? AnnotationType?.HIGHLIGHT ?? 9;
 const HIGHLIGHT_COLOR = [255, 230, 77];
 const HIGHLIGHT_OPACITY = 0.3;
 const HIGHLIGHT_TOP_PADDING = 5;
 const HIGHLIGHT_BOTTOM_PADDING = 10;
 const BBOX_PADDING = 1;
+const TEXT_RECT_PADDING = 1;
 
 if (!GlobalWorkerOptions.workerSrc) {
   GlobalWorkerOptions.workerSrc = PDFJS_WORKER_SRC;
@@ -148,6 +149,223 @@ function createHighlightAnnotation({ pageIndex, rotation, quadPoints }) {
   };
 }
 
+async function getPdfSourceBytes(pdfSource) {
+  if (pdfSource instanceof Blob) {
+    return await pdfSource.arrayBuffer();
+  }
+  if (pdfSource instanceof ArrayBuffer) {
+    return pdfSource.slice(0);
+  }
+  if (ArrayBuffer.isView(pdfSource)) {
+    const view = pdfSource;
+    return view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength);
+  }
+  throw new Error('Unsupported PDF source for highlight extraction.');
+}
+
+function normalizeRect(rect) {
+  return {
+    left: Math.min(rect.left, rect.right),
+    right: Math.max(rect.left, rect.right),
+    top: Math.min(rect.top, rect.bottom),
+    bottom: Math.max(rect.top, rect.bottom),
+  };
+}
+
+function combineRects(rects) {
+  return {
+    left: Math.min(...rects.map(rect => rect.left)),
+    right: Math.max(...rects.map(rect => rect.right)),
+    top: Math.min(...rects.map(rect => rect.top)),
+    bottom: Math.max(...rects.map(rect => rect.bottom)),
+  };
+}
+
+function getAnnotationViewportRects(annotation, viewport) {
+  const quadPoints = annotation.quadPoints;
+  const rects = [];
+
+  if (quadPoints?.length) {
+    for (let i = 0; i < quadPoints.length; i += 8) {
+      const points = [];
+      for (let j = 0; j < 8; j += 2) {
+        points.push(viewport.convertToViewportPoint(quadPoints[i + j], quadPoints[i + j + 1]));
+      }
+      rects.push(normalizeRect({
+        left: Math.min(...points.map(point => point[0])),
+        right: Math.max(...points.map(point => point[0])),
+        top: Math.min(...points.map(point => point[1])),
+        bottom: Math.max(...points.map(point => point[1])),
+      }));
+    }
+    return rects;
+  }
+
+  if (annotation.rect?.length === 4) {
+    const [x1, y1, x2, y2] = viewport.convertToViewportRectangle(annotation.rect);
+    rects.push(normalizeRect({ left: x1, top: y1, right: x2, bottom: y2 }));
+  }
+
+  return rects;
+}
+
+function getTextItemViewportRect(item, viewport, styles) {
+  if (!item?.str?.trim()) {
+    return null;
+  }
+
+  const transform = Util.transform(viewport.transform, item.transform);
+  const fontHeight = Math.hypot(transform[2], transform[3]) || Math.abs(item.height || 0) * viewport.scale;
+  const width = Math.abs(item.width || 0) * viewport.scale;
+  const style = styles?.[item.fontName] || {};
+  let top;
+
+  if (Number.isFinite(style.ascent)) {
+    top = transform[5] - fontHeight * style.ascent;
+  } else if (Number.isFinite(style.descent)) {
+    top = transform[5] - fontHeight * (1 + style.descent);
+  } else {
+    top = transform[5] - fontHeight;
+  }
+
+  return normalizeRect({
+    left: transform[4],
+    right: transform[4] + width,
+    top,
+    bottom: top + fontHeight,
+  });
+}
+
+function rectsIntersect(a, b, padding = 0) {
+  return !(
+    a.right + padding < b.left ||
+    b.right + padding < a.left ||
+    a.bottom + padding < b.top ||
+    b.bottom + padding < a.top
+  );
+}
+
+function getTextForHighlightRects(textItems, highlightRects) {
+  const included = textItems.filter(item =>
+    highlightRects.some(rect => rectsIntersect(item.rect, rect, TEXT_RECT_PADDING))
+  );
+  return included
+    .map(item => item.str)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .trim();
+}
+
+function isHighlightAnnotation(annotation) {
+  return annotation.annotationType === HIGHLIGHT_ANNOTATION_TYPE ||
+    annotation.annotationType === AnnotationType?.HIGHLIGHT ||
+    annotation.subtype === 'Highlight';
+}
+
+function getSelectionDedupeKey(selection) {
+  const bbox = selection.bbox || {};
+  return [
+    selection.page ?? selection.pageNumber,
+    (selection.text || '').replace(/\s+/g, ' ').trim().toLowerCase(),
+    Math.round(Number(bbox.x0 ?? selection.x1 ?? 0)),
+    Math.round(Number(bbox.y0 ?? selection.y1 ?? 0)),
+    Math.round(Number(bbox.x1 ?? selection.x2 ?? 0)),
+    Math.round(Number(bbox.y1 ?? 0)),
+  ].join('|');
+}
+
+function dedupeMarkupSelections(selections = []) {
+  const seen = new Set();
+  return selections.filter(selection => {
+    const key = getSelectionDedupeKey(selection);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function mergeMarkupSelections(existingSelections = [], newSelections = []) {
+  return dedupeMarkupSelections([
+    ...(existingSelections || []),
+    ...(newSelections || []),
+  ]);
+}
+
+function updateEvidenceMarkupMetadata(evidenceObj, highlightedSelections, { replace = false } = {}) {
+  if (!Array.isArray(highlightedSelections)) {
+    return evidenceObj;
+  }
+
+  const extractedSelections = replace
+    ? dedupeMarkupSelections(highlightedSelections)
+    : mergeMarkupSelections(evidenceObj.extractedSelections, highlightedSelections);
+
+  if (extractedSelections.length === 0) {
+    const { extractedSelections: _removed, ...rest } = evidenceObj;
+    return rest;
+  }
+
+  return { ...evidenceObj, extractedSelections };
+}
+
+async function extractHighlightsFromPdf(pdfSource) {
+  const pdfBytes = await getPdfSourceBytes(pdfSource);
+  const loadingTask = getDocument({ data: new Uint8Array(pdfBytes.slice(0)) });
+
+  try {
+    const pdfDoc = await loadingTask.promise;
+    const highlightedSelections = [];
+
+    for (let pageNumber = 1; pageNumber <= pdfDoc.numPages; pageNumber++) {
+      const page = await pdfDoc.getPage(pageNumber);
+      const annotations = await page.getAnnotations({ intent: 'display' });
+      const highlightAnnotations = annotations.filter(isHighlightAnnotation);
+      if (highlightAnnotations.length === 0) continue;
+
+      const viewport = page.getViewport({ scale: OCR_SCALE_FACTOR });
+      const textContent = await page.getTextContent();
+      const textItems = textContent.items
+        .map((item, index) => ({
+          index,
+          str: item.str,
+          rect: getTextItemViewportRect(item, viewport, textContent.styles),
+        }))
+        .filter(item => item.rect);
+
+      for (const annotation of highlightAnnotations) {
+        const rects = getAnnotationViewportRects(annotation, viewport);
+        if (rects.length === 0) continue;
+
+        const text = getTextForHighlightRects(textItems, rects);
+        if (!text) continue;
+
+        const bbox = combineRects(rects);
+        highlightedSelections.push({
+          page: pageNumber,
+          pageNumber,
+          text,
+          x1: bbox.left,
+          x2: bbox.right,
+          y1: bbox.top,
+          bbox: {
+            x0: bbox.left,
+            y0: bbox.top,
+            x1: bbox.right,
+            y1: bbox.bottom,
+          },
+          source: 'pdf-highlight',
+          annotationId: annotation.id,
+        });
+      }
+    }
+
+    return dedupeMarkupSelections(highlightedSelections);
+  } finally {
+    await loadingTask.destroy();
+  }
+}
+
 async function markupDocument(evidenceObj) {
   console.log("Markup document", { evidenceObj });
   let { extractedSelections, storageKey } = evidenceObj;
@@ -201,4 +419,9 @@ async function markupDocument(evidenceObj) {
   }
 }
 
-export { extractTextFromEvidence, markupDocument };
+export {
+  extractHighlightsFromPdf,
+  extractTextFromEvidence,
+  markupDocument,
+  updateEvidenceMarkupMetadata,
+};

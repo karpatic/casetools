@@ -4,6 +4,7 @@ import localforage from 'localforage';
 import { sanitizeForKey } from './../../utils/utils.js'; 
 import {getTitle} from './../../utils/gpt/getTitle.js' 
 import { isImageFile, imageFileToA4PdfBlob } from './../../utils/pdf/imageToPdf.js';
+import { extractHighlightsFromPdf, updateEvidenceMarkupMetadata } from './../../utils/pdf/markup.js';
 import LoadingModal from './../LoadingModal.jsx';
 
 
@@ -63,6 +64,15 @@ const EvidenceUpload = ({ pickedCase, cases, setCases }) => {
             const storageBlob = shouldConvertImage
                 ? await imageFileToA4PdfBlob(file)
                 : file;
+            let highlightedSelections = null;
+
+            if (finalFileName.toLowerCase().endsWith('.pdf')) {
+                try {
+                    highlightedSelections = await extractHighlightsFromPdf(storageBlob);
+                } catch (error) {
+                    console.warn(`Could not extract highlighted text from ${finalFileName}:`, error);
+                }
+            }
 
             // Store file in localForage 
             const sanitizedFilename = sanitizeForKey(finalFileName); 
@@ -71,18 +81,19 @@ const EvidenceUpload = ({ pickedCase, cases, setCases }) => {
             
             // Update evidence list. just one 
             const oldFile = newEvidence.find(evidence => evidence.fileName === finalFileName); 
-            if (!oldFile || !oldFile['title']){ 
-                newEvidence = newEvidence.filter(evidence => evidence.fileName !== finalFileName);
-                const titleObj = await getTitle(cases, pickedCase, finalFileName);
-                let finalObj = { 
-                    ...titleObj, 
-                    fileName: finalFileName,
-                    storageKey: storageKey, 
-                    evidencePacket: lastPacketNumber, 
-                    fileSize: storageBlob.size,
-                } 
-                newEvidence.push(finalObj); 
-            }  
+            const titleObj = (!oldFile || !oldFile['title'])
+                ? await getTitle(cases, pickedCase, finalFileName)
+                : {};
+            const finalObj = updateEvidenceMarkupMetadata({
+                ...oldFile,
+                ...titleObj,
+                fileName: finalFileName,
+                storageKey: storageKey,
+                evidencePacket: oldFile?.evidencePacket || lastPacketNumber,
+                fileSize: storageBlob.size,
+            }, highlightedSelections, { replace: true });
+            newEvidence = newEvidence.filter(evidence => evidence.fileName !== finalFileName);
+            newEvidence.push(finalObj);
         }
         let newCases = JSON.parse(JSON.stringify(cases));  
         newCases[pickedCase].evidence = newEvidence;
@@ -163,4 +174,4 @@ const EvidenceUpload = ({ pickedCase, cases, setCases }) => {
     );
 };
 
-export default EvidenceUpload; 
+export default EvidenceUpload;

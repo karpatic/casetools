@@ -6,6 +6,7 @@ import CaseBasics from './case/basics.jsx';
 import EvidencePackets from './evidence/packets.jsx';
 import PdfTools from './PdfTools.jsx'; 
 import { sanitizeForKey } from './../utils/utils.js';
+import { extractHighlightsFromPdf, updateEvidenceMarkupMetadata } from './../utils/pdf/markup.js';
 // localforage.clear().then(() => {
 //     console.log('All data cleared from localforage');
 // }).catch((err) => {
@@ -131,7 +132,9 @@ const App = () => {
 
             // Load evidence files 
             if (caseData.evidence.length > 0) {
-                for (const e of caseData.evidence) {
+                for (let i = 0; i < caseData.evidence.length; i++) {
+                    const e = caseData.evidence[i];
+                    let highlightedSelections = null;
                     // `${file.name.replace('.zip','')}/` + 
                     const filePath = `evidence/${e.fileName}`;
                     if (zip.files[filePath]) { 
@@ -144,6 +147,13 @@ const App = () => {
                         const formattedBlob = new Blob([fileBlob], { type: mimeType });
                         console.log('Saving:', fileKey);
                         await localforage.setItem(fileKey, formattedBlob);
+                        if (mimeType === 'application/pdf') {
+                            try {
+                                highlightedSelections = await extractHighlightsFromPdf(formattedBlob);
+                            } catch (error) {
+                                console.warn(`Could not extract highlighted text from ${e.fileName}:`, error);
+                            }
+                        }
 
                         // Update evidence with additional metadata
                         e.storageKey = fileKey;
@@ -162,6 +172,14 @@ const App = () => {
                         const markupFormattedBlob = new Blob([markupBlob], { type: 'application/pdf' });
                         console.log('Saving markup:', markupKey);
                         await localforage.setItem(markupKey, markupFormattedBlob);
+                        try {
+                            highlightedSelections = await extractHighlightsFromPdf(markupFormattedBlob);
+                        } catch (error) {
+                            console.warn(`Could not extract highlighted text from ${markupFileName}:`, error);
+                        }
+                    }
+                    if (highlightedSelections) {
+                        caseData.evidence[i] = updateEvidenceMarkupMetadata(e, highlightedSelections, { replace: true });
                     }
                 }
             }
