@@ -18,20 +18,46 @@ const CaseBasics = ({ cases, setCases, pickedCase }) => {
     }, [pickedCase, cases]);
     
 
-    const [saveTimeoutId, setSaveTimeoutId] = React.useState(null);
+    const saveTimeoutIdRef = React.useRef(null);
+    const forceNextSaveRef = React.useRef(false);
 
     const saveConfig = async (configToSave) => {
         try {
-            const cases = await localforage.getItem('cases') || {};
-            cases[pickedCase] = {
-                ...cases[pickedCase],
+            const casesLocal = await localforage.getItem('cases') || {};
+            casesLocal[pickedCase] = {
+                ...casesLocal[pickedCase],
                 basics: configToSave
             };
-            await localforage.setItem('cases', cases);
+            await localforage.setItem('cases', casesLocal);
+
+            // Keep parent component state in sync
+            setCases(prevCases => ({
+                ...prevCases,
+                [pickedCase]: {
+                    ...prevCases[pickedCase],
+                    basics: configToSave
+                }
+            }));
+
             showToast('Case configuration saved successfully');
         } catch (error) {
             console.error('Error saving config:', error);
             showToast('Error saving configuration');
+        }
+    };
+
+    const triggerSave = (newConfig) => {
+        if (saveTimeoutIdRef.current) clearTimeout(saveTimeoutIdRef.current);
+        
+        if (forceNextSaveRef.current) {
+            saveConfig(newConfig);
+            saveTimeoutIdRef.current = null;
+            forceNextSaveRef.current = false;
+        } else {
+            saveTimeoutIdRef.current = setTimeout(() => {
+                saveConfig(newConfig);
+                saveTimeoutIdRef.current = null;
+            }, 300);
         }
     };
 
@@ -55,9 +81,7 @@ const CaseBasics = ({ cases, setCases, pickedCase }) => {
                 respondent.file_numbers = fileNumbers;
                 newConfig.respondents[respondentIndex] = respondent;
 
-                if (saveTimeoutId) clearTimeout(saveTimeoutId);
-                const timeoutId = setTimeout(() => saveConfig(newConfig), 500);
-                setSaveTimeoutId(timeoutId);
+                triggerSave(newConfig);
                 return newConfig;
             });
             return;
@@ -83,17 +107,7 @@ const CaseBasics = ({ cases, setCases, pickedCase }) => {
                     // Update the specific field
                     newConfig.respondents[index][field] = value;
 
-                    // Clear previous timeout if it exists
-                    if (saveTimeoutId) {
-                        clearTimeout(saveTimeoutId);
-                    }
-
-                    // Set new timeout
-                    const timeoutId = setTimeout(() => {
-                        saveConfig(newConfig);
-                    }, 500); // Save after 500ms of inactivity
-
-                    setSaveTimeoutId(timeoutId);
+                    triggerSave(newConfig);
                     return newConfig;
                 });
                 return;
@@ -114,17 +128,7 @@ const CaseBasics = ({ cases, setCases, pickedCase }) => {
                 }
             }
 
-            // Clear previous timeout if it exists
-            if (saveTimeoutId) {
-                clearTimeout(saveTimeoutId);
-            }
-
-            // Set new timeout
-            const timeoutId = setTimeout(() => {
-                saveConfig(newConfig);
-            }, 500); // Save after 500ms of inactivity
-
-            setSaveTimeoutId(timeoutId);
+            triggerSave(newConfig);
             return newConfig;
         });
     };
@@ -179,9 +183,26 @@ const CaseBasics = ({ cases, setCases, pickedCase }) => {
         localStorage.setItem('caseBasicsActiveTab', activeTab);
     }, [activeTab]);
 
+    const handleKeyDown = (e) => {
+        if (e.key === 'Tab') {
+            if (saveTimeoutIdRef.current) {
+                clearTimeout(saveTimeoutIdRef.current);
+                saveTimeoutIdRef.current = null;
+                setConfig(prevConfig => {
+                    saveConfig(prevConfig);
+                    return prevConfig;
+                });
+            }
+        }
+    };
+
+    const handlePaste = (e) => {
+        forceNextSaveRef.current = true;
+    };
+
     return (
         <div>
-            <form className="mb-4">
+            <form className="mb-4" onKeyDown={handleKeyDown} onPaste={handlePaste}>
                 <div className="accordion" id="caseBasicsAccordion">
                     <div className="accordion-item">
                         <h2 className="accordion-header" id="headingCaseFacts">
@@ -216,31 +237,31 @@ const CaseBasics = ({ cases, setCases, pickedCase }) => {
                             <div className="accordion-body">
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Name:</label>
-                                    <input type="text" className="form-control" name="attorney.attorney_name" value={config?.attorney?.attorney_name || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="attorney.attorney_name" value={config?.attorney?.attorney_name ?? 'Nathalie G Karpati, Esq.'} onChange={handleConfigChange} placeholder="Nathalie G Karpati, Esq." />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Address:</label>
-                                    <input type="text" className="form-control" name="attorney.address" value={config?.attorney?.address || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="attorney.address" value={config?.attorney?.address ?? '53 Nicholson St., NW'} onChange={handleConfigChange} placeholder="53 Nicholson St., NW" />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">City:</label>
-                                    <input type="text" className="form-control" name="attorney.city" value={config?.attorney?.city || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="attorney.city" value={config?.attorney?.city ?? 'Washington, DC 20011'} onChange={handleConfigChange} placeholder="Washington, DC 20011" />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Phone:</label>
-                                    <input type="text" className="form-control" name="attorney.phone" value={config?.attorney?.phone || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="attorney.phone" value={config?.attorney?.phone ?? '(703) 828-4374'} onChange={handleConfigChange} placeholder="(703) 828-4374" />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Email:</label>
-                                    <input type="text" className="form-control" name="attorney.email" value={config?.attorney?.email || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="attorney.email" value={config?.attorney?.email ?? 'Nathalie.Karpati@gmail.com'} onChange={handleConfigChange} placeholder="Nathalie.Karpati@gmail.com" />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">EOIR ID:</label>
-                                    <input type="text" className="form-control" name="attorney.eoir_id" value={config?.attorney?.eoir_id || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="attorney.eoir_id" value={config?.attorney?.eoir_id ?? 'GG254003'} onChange={handleConfigChange} placeholder="GG254003" />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Case Type:</label>
-                                    <input type="text" className="form-control" name="attorney.case_type" value={config?.attorney?.case_type || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="attorney.case_type" value={config?.attorney?.case_type ?? 'NON-DETAINED'} onChange={handleConfigChange} placeholder="NON-DETAINED" />
                                 </div>
                             </div>
                         </div>
@@ -252,26 +273,29 @@ const CaseBasics = ({ cases, setCases, pickedCase }) => {
                                 type="button"
                                 onClick={() => setActiveTab(activeTab === 'cover' ? '' : 'cover')}
                             >
-                                Cover
+                                Court Information
                             </button>
                         </h2>
                         <div id="collapseCover" className={"accordion-collapse collapse" + (activeTab === 'cover' ? " show" : "")} data-bs-parent="#caseBasicsAccordion">
                             <div className="accordion-body">
+                                <div className="mb-4 text-center">
+                                    <img src="./rsc/img/cover_page.png" alt="Cover Page Preview" className="img-fluid border shadow-sm" style={{ maxHeight: '333px' }} />
+                                </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Department:</label>
-                                    <input type="text" className="form-control" name="cover.cover_department" value={config?.cover?.cover_department || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="cover.cover_department" value={config?.cover?.cover_department || ''} onChange={handleConfigChange} placeholder="UNITED STATES DEPARTMENT OF JUSTICE" />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Division:</label>
-                                    <input type="text" className="form-control" name="cover.cover_division" value={config?.cover?.cover_division || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="cover.cover_division" value={config?.cover?.cover_division || ''} onChange={handleConfigChange} placeholder="EXECUTIVE OFFICE OF IMMIGRATION REVIEW" />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Cover Name:</label>
-                                    <input type="text" className="form-control" name="cover.cover_name" value={config?.cover?.cover_name || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="cover.cover_name" value={config?.cover?.cover_name || ''} onChange={handleConfigChange} placeholder="UNITED STATES IMMIGRATION COURT" />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Location:</label>
-                                    <input type="text" className="form-control" name="cover.cover_location" value={config?.cover?.cover_location || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="cover.cover_location" value={config?.cover?.cover_location || ''} onChange={handleConfigChange} placeholder="ANNANDALE, VIRGINIA" />
                                 </div>
                             </div>
                         </div>
@@ -288,29 +312,32 @@ const CaseBasics = ({ cases, setCases, pickedCase }) => {
                         </h2>
                         <div id="collapseCertificate" className={"accordion-collapse collapse" + (activeTab === 'certificate' ? " show" : "")} data-bs-parent="#caseBasicsAccordion">
                             <div className="accordion-body">
+                                <div className="mb-4 text-center">
+                                    <img src="./rsc/img/certificate_of_service.png" alt="Certificate of Service Preview" className="img-fluid border shadow-sm" style={{ maxHeight: '333px' }} />
+                                </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Department:</label>
-                                    <input type="text" className="form-control" name="certificate.certificate_department" value={config?.certificate?.certificate_department || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="certificate.certificate_department" value={config?.certificate?.certificate_department || ''} onChange={handleConfigChange} placeholder="U.S. DEPARTMENT OF HOMELAND SECURITY" />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Division:</label>
-                                    <input type="text" className="form-control" name="certificate.certificate_division" value={config?.certificate?.certificate_division || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="certificate.certificate_division" value={config?.certificate?.certificate_division || ''} onChange={handleConfigChange} placeholder="IMMIGRATION AND CUSTOMS ENFORCEMENT" />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Name:</label>
-                                    <input type="text" className="form-control" name="certificate.certificate_name" value={config?.certificate?.certificate_name || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="certificate.certificate_name" value={config?.certificate?.certificate_name || ''} onChange={handleConfigChange} placeholder="OFFICE OF THE PRINCIPAL LEGAL ADVISOR" />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Address:</label>
-                                    <input type="text" className="form-control" name="certificate.certificate_location_address" value={config?.certificate?.certificate_location_address || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="certificate.certificate_location_address" value={config?.certificate?.certificate_location_address || ''} onChange={handleConfigChange} placeholder="7619 Little River Turnpike" />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Address Line Two:</label>
-                                    <input type="text" className="form-control" name="certificate.certificate_location_linetwo" value={config?.certificate?.certificate_location_linetwo || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="certificate.certificate_location_linetwo" value={config?.certificate?.certificate_location_linetwo || ''} onChange={handleConfigChange} placeholder="Suite 900" />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Address State and Zip:</label>
-                                    <input type="text" className="form-control" name="certificate.certificate_location_statezip" value={config?.certificate?.certificate_location_statezip || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="certificate.certificate_location_statezip" value={config?.certificate?.certificate_location_statezip || ''} onChange={handleConfigChange} placeholder="Annandale, VA 22003" />
                                 </div>
                             </div>
                         </div>
@@ -347,6 +374,7 @@ const CaseBasics = ({ cases, setCases, pickedCase }) => {
                                                 name={`respondent[${index}].full_name`} 
                                                 value={respondent.full_name || ''} 
                                                 onChange={handleConfigChange} 
+                                                placeholder="FULL NAME"
                                             />
                                         </div>
                                         <div className="mb-3">
@@ -363,6 +391,7 @@ const CaseBasics = ({ cases, setCases, pickedCase }) => {
                                                             name={`respondent[${index}].file_numbers[${fileNumIndex}]`}
                                                             value={fileNum || ''}
                                                             onChange={handleConfigChange}
+                                                            placeholder="A#012-345-678"
                                                         />
                                                         {fileNums.length > 1 && (
                                                             <button
@@ -392,6 +421,7 @@ const CaseBasics = ({ cases, setCases, pickedCase }) => {
                                                 name={`respondent[${index}].status`} 
                                                 value={respondent.status || ''} 
                                                 onChange={handleConfigChange} 
+                                                placeholder="In Removal Proceedings"
                                             />
                                         </div>
                                     </div>
@@ -420,15 +450,15 @@ const CaseBasics = ({ cases, setCases, pickedCase }) => {
                             <div className="accordion-body">
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Name:</label>
-                                    <input type="text" className="form-control" name="judge.judge_name" value={config?.judge?.judge_name || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="judge.judge_name" value={config?.judge?.judge_name || ''} onChange={handleConfigChange} placeholder="JUDGE NAME" />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Hearing Date:</label>
-                                    <input type="text" className="form-control" name="judge.hearing_date" value={config?.judge?.hearing_date || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="judge.hearing_date" value={config?.judge?.hearing_date || ''} onChange={handleConfigChange} placeholder="March 31, 2026" />
                                 </div>
                                 <div className="mb-3 d-flex align-items-center">
                                     <label className="form-label me-2">Hearing Time:</label>
-                                    <input type="text" className="form-control" name="judge.hearing_time" value={config?.judge?.hearing_time || ''} onChange={handleConfigChange} />
+                                    <input type="text" className="form-control" name="judge.hearing_time" value={config?.judge?.hearing_time || ''} onChange={handleConfigChange} placeholder="1:00 PM" />
                                 </div>
                             </div>
                         </div>

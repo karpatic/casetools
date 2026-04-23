@@ -439,12 +439,18 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
                 </div>
             </div>
             { pdfUrl && ( 
-                <iframe
-                src={pdfUrl}
-                title="PDF Viewer"
-                style={{ width: "95%", height: "1000px" }}
-                >
-                </iframe>
+                <>
+                    <div className="alert alert-warning mt-3" style={{ width: "95%" }}>
+                        Browser PDF viewer annotations are not saved back into CaseTools automatically.
+                        Use the viewer's Download or Save As action, then upload the saved PDF again with the same file name before compiling.
+                    </div>
+                    <iframe
+                    src={pdfUrl}
+                    title="PDF Viewer"
+                    style={{ width: "95%", height: "1000px" }}
+                    >
+                    </iframe>
+                </>
             )}
 
             <style>{`

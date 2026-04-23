@@ -40,10 +40,16 @@ like so { fileNames : ['1wx0xjiz9n.pdf', '1wx0xjiz9n.Png', '1wx0xjiz9n.PDF']
     ];
     
     let setUserMessage = ( data ) => {
+        const strippedData = data.map(item => ({
+            fileName: item.fileName,
+            sortId: item.sortId,
+            title: item.title
+        }));
+        
         messages [1] = {
                 role: "user",
                 content: `Here is the list of support evidence: 
-                            ${JSON.stringify(data, null, 2)}. 
+                            ${JSON.stringify(strippedData, null, 2)}. 
                           Please return a JSON list of IDs in the most compelling order.
 
                           As an example, 

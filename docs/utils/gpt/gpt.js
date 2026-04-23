@@ -69,6 +69,10 @@ async function callVisionGPT(imagePaths, system = false, user = false, json = fa
 
     const data = await response.json();
 
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status} - ${data.error?.message || JSON.stringify(data.error)}`);
+    }
+
     // Return the result from GPT
     let resp;
     try {
@@ -94,7 +98,7 @@ async function callChatGPT(messages, json = true) {
     const body = {
       model: "gpt-5.2",
       messages: messages,
-      max_tokens: 4000,
+      max_completion_tokens: 4000,
       temperature: 0,
       response_format: json ? { type: "json_object" } : { type: "text" }
     };
@@ -109,6 +113,10 @@ async function callChatGPT(messages, json = true) {
     });
 
     const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status} - ${data.error?.message || JSON.stringify(data.error)}`);
+    }
 
     let resp = data.choices[0].message.content;
 

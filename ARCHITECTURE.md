@@ -69,7 +69,7 @@ Compilation happens in `docs/utils/createPacket.js`.
 ### Page sizing behavior
 Merging is handled by `docs/utils/pdf/merge.js`.
 - Default behavior: preserve original page dimensions.
-- Optional behavior: “Fit all pages to the same dimensions” redraws each page onto a **US Letter** page (8.5×11 inches), preserving aspect ratio.
+- Optional behavior: “Fit all pages to the same dimensions” copies each page, resizes it to **US Letter** (8.5×11 inches), and scales page content plus annotation coordinates so saved PDF annotations are preserved.
 
 ## Folder Structure (What goes where)
 - `docs/` — GitHub Pages site root

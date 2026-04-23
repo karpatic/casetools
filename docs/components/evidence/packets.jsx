@@ -7,6 +7,7 @@ import EvidenceTable from './table.jsx';
 import CaseChatBot from './../case/chatbot.jsx';
 import sortTableOfContents from './../../utils/gpt/sortTableOfContents.js'; 
 import createPacket from '../../utils/createPacket.js'; 
+import { createCaseMetadataYaml } from '../../utils/createTableOfContents.js';
 import LoadingModal from './../LoadingModal.jsx';
 
 const DEFAULT_PACKET = {
@@ -25,6 +26,7 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
     const [packetData, setPacketData] = React.useState(null);
     const [markupFilename, setMarkupFilename] = React.useState(null);
     const [compiling, setCompiling] = React.useState(false);
+    const [sorting, setSorting] = React.useState(false);
 
     React.useEffect(() => { 
         setCurrentCase(cases[pickedCase] || {});
@@ -122,6 +124,7 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
     }; 
 
     const sortEvidencePacket = async (packetKey) => {
+        setSorting(true);
         try {
             const sortedEvidence = await sortTableOfContents(currentCase.evidence, currentCase[packetKey].sortInstructions);
             // console.log('sortedEvidence:', sortedEvidence); 
@@ -132,22 +135,33 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
             showToast('Evidence sorted'); 
         } catch (error) {
             console.error('Error sorting evidence:', error);
+            showToast('Error sorting evidence');
+        } finally {
+            setSorting(false);
         }
     };
 
     const createPacketHandler = async (packetKey) => {
         console.log('createPacketStateHandler:', packetKey); 
 
+        const updatedSelectedCase = {
+            ...cases[pickedCase],
+            [packetKey]: newPacket,
+        };
+
+        // Check if we have complete information before compiling.
+        // createCaseMetadataYaml will trigger an alert if info is missing and return false.
+        const config = updatedSelectedCase.basics;
+        const packetConfig = updatedSelectedCase[packetKey];
+        if (!createCaseMetadataYaml(config, packetConfig)) {
+            return;
+        }
+
         setCompiling(true);
 
         // Compile using the latest UNSAVED edits. This ensures that users see the most up-to-date version of their packet, even if they forget to click "Save Changes" before compiling.
         // This does not SAVE the changes. Just compiles.
         try {
-            const updatedSelectedCase = {
-                ...cases[pickedCase],
-                [packetKey]: newPacket,
-            };
-
             setCases(prevCases => ({
                 ...prevCases,
                 [pickedCase]: updatedSelectedCase,
@@ -185,10 +199,61 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
  
     console.log('activeTab:', activeTab);
 
+    const compiledPacketPreview = React.useMemo(() => {
+        if (activeTab === 'upload' || activeTab === 'new' || !packetData) return null;
+        
+        const evidenceUrl = packetData.evidencePacketPdf ? URL.createObjectURL(packetData.evidencePacketPdf) : null;
+        const certUrl = packetData.certificatePdf ? URL.createObjectURL(packetData.certificatePdf) : null;
+
+        return (
+            <details className="mt-4" open>
+                <summary>
+                    <h4 style={{display:'inline'}}>Compiled Packet Preview</h4>
+                </summary>
+                <div className="breakout">
+                    <div className="breakoutContainer"> 
+                        {packetData.evidencePacketPdf &&  
+                            <div className='iframeContainer'>
+                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                    <h5>Final Packet</h5>
+                                    <a 
+                                        href={evidenceUrl} 
+                                        download={`${activeTab}_toc.pdf`}
+                                        className="btn btn-primary btn-sm"
+                                    >
+                                        Download
+                                    </a>
+                                </div>
+                                <iframe src={evidenceUrl}
+                                    title={`Final Packet`} />
+                            </div>
+                        }
+                        {packetData.certificatePdf && (
+                            <div className='iframeContainer'>
+                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                    <h5>Certificate Page</h5>
+                                    <a 
+                                        href={certUrl} 
+                                        download={`${activeTab}_certpage.pdf`}
+                                        className="btn btn-primary btn-sm"
+                                    >
+                                        Download
+                                    </a>
+                                </div>
+                                <iframe src={certUrl}
+                                    title="Certificate Page" />
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </details>
+        );
+    }, [activeTab, packetData]);
+
 
     return (
         <div> 
-            <LoadingModal show={compiling} title="Compiling packet" />
+            <LoadingModal show={compiling || sorting} title={sorting ? 'Sorting evidence' : 'Compiling packet'} />
             <ul className="nav nav-tabs">
                 {Object.keys(currentCase).filter(key => key.startsWith('evidencePacket_')).map((packetKey, index) => (
                     <li className="nav-item" key={index}>
@@ -237,8 +302,10 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
                                 <textarea className="form-control" name="sortInstructions" value={newPacket.sortInstructions} onChange={e => setNewPacket({ ...newPacket, sortInstructions: e.target.value })} style={{height : '160px' }} />
                             </div>
                             <button type="button" className="btn btn-secondary" onClick={() => savePacket(packetKey)}>Save Changes</button>
-                            <button type="button" className="btn btn-primary ms-2" onClick={() => sortEvidencePacket(packetKey)}>Sort Evidence</button>
-                            <button type="button" className="btn btn-success ms-2" onClick={() => createPacketHandler(packetKey)}>Compile</button>
+                            <button type="button" className="btn btn-primary ms-2" onClick={() => sortEvidencePacket(packetKey)} disabled={sorting || compiling}>
+                                {sorting ? 'Sorting...' : 'Sort Evidence'}
+                            </button>
+                            <button type="button" className="btn btn-success ms-2" onClick={() => createPacketHandler(packetKey)} disabled={sorting || compiling}>Compile</button>
  
 
                         </form>
@@ -272,49 +339,7 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
                         </form>
                     </div>
                 )}
-                {activeTab !== 'upload' && activeTab !== 'new' && packetData && (
-                    <details className="mt-4">
-                        <summary>
-                            <h4 style={{display:'inline'}}>Compiled Packet Preview</h4>
-                        </summary>
-                        <div className="breakout">
-                            <div className="breakoutContainer"> 
-                                {packetData.evidencePacketPdf &&  
-                                    <div className='iframeContainer'>
-                                        <div className="d-flex justify-content-between align-items-center mb-2">
-                                            <h5>Final Packet</h5>
-                                            <a 
-                                                href={URL.createObjectURL(packetData.evidencePacketPdf)} 
-                                                download={`${activeTab}_toc.pdf`}
-                                                className="btn btn-primary btn-sm"
-                                            >
-                                                Download
-                                            </a>
-                                        </div>
-                                        <iframe src={URL.createObjectURL(packetData.evidencePacketPdf)}
-                                            title={`Final Packet`} />
-                                    </div>
-                                }
-                                {packetData.certificatePdf && (
-                                    <div className='iframeContainer'>
-                                        <div className="d-flex justify-content-between align-items-center mb-2">
-                                            <h5>Certificate Page</h5>
-                                            <a 
-                                                href={URL.createObjectURL(packetData.certificatePdf)} 
-                                                download={`${activeTab}_certpage.pdf`}
-                                                className="btn btn-primary btn-sm"
-                                            >
-                                                Download
-                                            </a>
-                                        </div>
-                                        <iframe src={URL.createObjectURL(packetData.certificatePdf)}
-                                            title="Certificate Page" />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </details>
-                )} 
+                {compiledPacketPreview}
                 <div className="tab-pane fade show active"> 
                     <EvidenceTable
                         cases={cases}

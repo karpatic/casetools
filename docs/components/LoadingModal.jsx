@@ -13,7 +13,9 @@ const LoadingModal = ({ show, title = 'Loading', children }) => {
                         </div>
                         <div className="modal-body">
                             {children || (
-                                <div className="spinner-border" role="status" aria-hidden="true" />
+                                <div className="d-flex justify-content-center">
+                                    <div className="spinner-border" role="status" aria-hidden="true" />
+                                </div>
                             )}
                         </div>
                     </div>
