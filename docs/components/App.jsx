@@ -54,16 +54,21 @@ const App = () => {
     React.useEffect(() => getCases(), []);
 
     const createCase = () => {
-        if (!newCaseName.trim() || cases[newCaseName]) return;  
+        const caseName = newCaseName.trim();
+        if (!caseName) {
+            window.alert('Please enter a case name before creating a new case.');
+            return;
+        }
+        if (cases[caseName]) return;
         setCases(prevCases => {
             const newCases = {
                 ...prevCases,
-                [newCaseName]: {}
+                [caseName]: {}
             };
             // Auto-select if it's the first case
             if (Object.keys(prevCases).length === 0) {
-                setPickedCase(newCaseName);
-                localStorage.setItem('pickedCase', newCaseName);
+                setPickedCase(caseName);
+                localStorage.setItem('pickedCase', caseName);
             }
             return newCases;
         });
