@@ -1,10 +1,12 @@
 // EvidencePackets.jsx
  
-import React, { useRef } from 'react';
+import React from 'react';
 import { sanitizeForKey } from './../../utils/utils.js';
 import {getTitle} from './../../utils/gpt/getTitle.js' 
 import EvidenceUpload from './upload.jsx';
 import localforage from 'localforage';
+
+const PDFJS_CASE_VIEWER_URL = './pdfjs-case-viewer.html';
 
 // evidence, setEvidence 
 const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => { 
@@ -13,9 +15,18 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
     .filter(key => key.startsWith('evidencePacket_'))
     .map(key => parseInt(key.split('_')[1]))));
     const [searchFilter, setSearchFilter] = React.useState("");  
-    const [pdfUrl, setPdfUrl] = React.useState(null);  
+    const [pdfViewerVisible, setPdfViewerVisible] = React.useState(false);
+    const [pdfViewerKey, setPdfViewerKey] = React.useState(0);
+    const [pdfViewerStatus, setPdfViewerStatus] = React.useState('');
     const [pdfFilename, setPdfFilename] = React.useState(null);
     const [showUpload, setShowUpload] = React.useState(false);  
+    const pdfIframeRef = React.useRef(null);
+    const pdfDocumentRef = React.useRef(null);
+    const evidenceRef = React.useRef(evidence);
+
+    React.useEffect(() => {
+        evidenceRef.current = evidence;
+    }, [evidence]);
 
     // update evidence when cases[pickedCase].evidence changes
     React.useEffect(() => { 
@@ -25,7 +36,6 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
 
     React.useEffect(() => {
         console.log('CASES UPDATED', cases);
-        if(pdfFilename) { viewPdf(pdfFilename); }
     }, [cases]);
         
 
@@ -105,12 +115,110 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
     const viewPdf = async (fileName) => {
         console.log('viewPdf', fileName); 
         let fname = sanitizeForKey(fileName);
-        const fileKey = `${pickedCase}_${fname}`; 
-        let file = await localforage.getItem(fileKey.replace(/\.pdf$/i, "_markup.pdf")) ||
-            await localforage.getItem(fileKey);
-        const url = URL.createObjectURL(file);
-        setPdfUrl(url); 
+        const fileKey = `${pickedCase}_${fname}`;
+        const markupKey = fileKey.replace(/\.pdf$/i, "_markup.pdf");
+        const markupFile = await localforage.getItem(markupKey);
+        const originalFile = await localforage.getItem(fileKey);
+        const file = markupFile || originalFile;
+
+        if (!file) {
+            pdfDocumentRef.current = null;
+            setPdfViewerStatus(`Could not find ${fileName}.`);
+            setPdfViewerVisible(false);
+            return;
+        }
+
+        pdfDocumentRef.current = {
+            bytes: await file.arrayBuffer(),
+            fileKey,
+            fileName,
+            markupKey,
+            sourceKey: markupFile ? markupKey : fileKey,
+        };
+        setPdfViewerStatus(`Loading ${fileName}...`);
+        setPdfViewerVisible(true);
+        setPdfViewerKey(prev => prev + 1);
     };
+
+    const postPdfToViewer = () => {
+        const iframeWindow = pdfIframeRef.current?.contentWindow;
+        const pdfDocument = pdfDocumentRef.current;
+        if (!iframeWindow || !pdfDocument?.bytes) return;
+
+        const pdfBytes = pdfDocument.bytes.slice(0);
+        iframeWindow.postMessage({
+            type: 'case-tools-open-pdf',
+            fileName: pdfDocument.fileName,
+            pdfBytes,
+        }, window.location.origin, [pdfBytes]);
+    };
+
+    const saveAnnotatedPdf = async ({ fileName, pdfBytes }) => {
+        const pdfDocument = pdfDocumentRef.current;
+        if (!pdfDocument || pdfDocument.fileName !== fileName) {
+            setPdfViewerStatus('Save ignored because the active PDF changed.');
+            return;
+        }
+
+        const bytes = pdfBytes instanceof ArrayBuffer ? pdfBytes : new Uint8Array(pdfBytes).buffer;
+        const annotatedPdf = new Blob([bytes], { type: 'application/pdf' });
+        await localforage.setItem(pdfDocument.fileKey, annotatedPdf);
+        await localforage.removeItem(pdfDocument.markupKey);
+
+        pdfDocumentRef.current = {
+            ...pdfDocument,
+            bytes: bytes.slice(0),
+            sourceKey: pdfDocument.fileKey,
+        };
+
+        const updatedEvidence = evidenceRef.current.map(item => (
+            item.fileName === fileName
+                ? { ...item, storageKey: pdfDocument.fileKey, fileSize: annotatedPdf.size }
+                : item
+        ));
+        setEvidence(updatedEvidence);
+        setCases(prevCases => ({
+            ...prevCases,
+            [pickedCase]: {
+                ...prevCases[pickedCase],
+                evidence: updatedEvidence
+            }
+        }));
+        setPdfViewerStatus(`Saved annotations into ${fileName}.`);
+    };
+
+    React.useEffect(() => {
+        const handlePdfViewerMessage = event => {
+            if (event.origin !== window.location.origin) return;
+            if (event.source !== pdfIframeRef.current?.contentWindow) return;
+
+            const message = event.data || {};
+            if (message.type === 'case-tools-pdfjs-ready') {
+                postPdfToViewer();
+                return;
+            }
+
+            if (message.type === 'case-tools-pdfjs-saved') {
+                saveAnnotatedPdf(message).catch(error => {
+                    console.error('Failed to save annotated PDF:', error);
+                    setPdfViewerStatus(`Save failed: ${error.message}`);
+                });
+                return;
+            }
+
+            if (message.type === 'case-tools-pdfjs-status') {
+                setPdfViewerStatus(message.message || '');
+                return;
+            }
+
+            if (message.type === 'case-tools-pdfjs-error') {
+                setPdfViewerStatus(`${message.message || 'PDF.js viewer error'} ${message.detail || ''}`.trim());
+            }
+        };
+
+        window.addEventListener('message', handlePdfViewerMessage);
+        return () => window.removeEventListener('message', handlePdfViewerMessage);
+    });
 
     const highlightRowAndColumn = (cell) => {
         const tableElement = document.querySelector("#evidence-table");
@@ -396,7 +504,10 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
     };
 
     const closePdfViewer = () => {
-        setPdfUrl(null);
+        pdfDocumentRef.current = null;
+        setPdfViewerVisible(false);
+        setPdfFilename(null);
+        setPdfViewerStatus('');
     };
 
     return (
@@ -438,15 +549,22 @@ const EvidenceTable = ({ cases, setCases, pickedCase, setMarkupFilename }) => {
                     </div>
                 </div>
             </div>
-            { pdfUrl && ( 
+            { pdfViewerVisible && (
                 <>
-                    <div className="alert alert-warning mt-3" style={{ width: "95%" }}>
-                        Browser PDF viewer annotations are not saved back into CaseTools automatically.
-                        Use the viewer's Download or Save As action, then upload the saved PDF again with the same file name before compiling.
+                    <div className="alert alert-info mt-3 d-flex justify-content-between align-items-center" style={{ width: "95%" }}>
+                        <span>
+                            This viewer uses PDF.js annotation tools. Click <b>Save to CaseTools</b> in the PDF toolbar to replace the stored evidence PDF with the annotated version.
+                        </span>
+                        <button type="button" className="btn btn-sm btn-outline-secondary ms-3" onClick={closePdfViewer}>Close</button>
                     </div>
+                    {pdfViewerStatus && (
+                        <div className="text-muted mb-2" style={{ width: "95%" }}>{pdfViewerStatus}</div>
+                    )}
                     <iframe
-                    src={pdfUrl}
-                    title="PDF Viewer"
+                    key={pdfViewerKey}
+                    ref={pdfIframeRef}
+                    src={PDFJS_CASE_VIEWER_URL}
+                    title={pdfFilename ? `PDF Viewer: ${pdfFilename}` : "PDF Viewer"}
                     style={{ width: "95%", height: "1000px" }}
                     >
                     </iframe>

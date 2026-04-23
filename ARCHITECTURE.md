@@ -56,6 +56,12 @@ This keeps the JSON `cases` object small and avoids storing large blobs in React
 - Compiled outputs are stored in localForage under `compiled_case_${pickedCase}_${packetKey}` as:
   - `{ certificatePdf: Blob, evidencePacketPdf: Blob }`
 
+### Evidence PDF viewer
+`docs/components/evidence/table.jsx` embeds `docs/pdfjs-case-viewer.html` instead of pointing an iframe directly at a PDF blob.
+- The viewer wrapper loads Mozilla PDF.js, exposes annotation tools, and uses `postMessage` to receive PDF bytes from React.
+- Its custom “Save to CaseTools” button calls PDF.js `saveDocument()` and posts annotated PDF bytes back to React.
+- React overwrites the original evidence PDF key and removes the optional `_markup.pdf` sidecar so packet compilation uses the annotated PDF.
+
 ## Packet Compilation Pipeline
 Compilation happens in `docs/utils/createPacket.js`.
 
