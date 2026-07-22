@@ -1,9 +1,9 @@
 import {createTableOfContentsYaml, createCaseMetadataYaml} from './createTableOfContents.js'; 
 import pdfMerge from './pdf/merge.js';
-import {sanitizeForKey} from './utils.js';
 import localforage from 'localforage';  
 import numberPages from './pdf/numberPages.js';
 import fitPdfToLetter from './pdf/fitToLetter.js';
+import { preflightEvidenceFiles } from './evidenceStorageKeys.js';
 
 
 // todo: add filesize as a metadata attribute. 
@@ -16,6 +16,14 @@ async function createPacket(selectedCase, pickedCase, packetKey) {
     const packetConfig = selectedCase?.[packetKey];    
     let text = `---${createCaseMetadataYaml(config, packetConfig)}---`;
     // console.log('CaseMetadataYaml:\n', text) 
+
+    // Step 0A. Evidence preflight - fail before expensive Pandoc calls if a browser-stored PDF is missing.
+    const preparedEvidenceFiles = await preflightEvidenceFiles(
+        selectedCase,
+        pickedCase,
+        packetKey,
+        key => localforage.getItem(key),
+    );
 
     // Step 1. Create the Certificate, and Cover
     let getPdfFromResponse = async (response) => {
@@ -46,15 +54,6 @@ async function createPacket(selectedCase, pickedCase, packetKey) {
 
     // Step 2: Prepare all files first 
  
-    const evidence = selectedCase.evidence; 
-    
-    // Step 2A. Filter
-    const packetNumber = parseInt(packetKey.split('_')[1]);  
-    const filteredEvidence = evidence.filter(e => parseInt(e.evidencePacket) == packetNumber);
-
-    // Step 2B. Sort
-    filteredEvidence.sort((a, b) => a.sortId - b.sortId); 
-
     let currentPage = parseInt(packetConfig.startPage || 1);
     const startLetterIndex = letterToIndex(packetConfig?.startLetter || 'A');  
 
@@ -62,21 +61,11 @@ async function createPacket(selectedCase, pickedCase, packetKey) {
     const exhibitList = [];
     let currentChunkSize = 0;
     currentPage = parseInt(packetConfig.startPage || 1);
-    for (let i = 0; i < filteredEvidence.length; i++) {
-        const evidence = filteredEvidence[i];
+    for (let i = 0; i < preparedEvidenceFiles.length; i++) {
+        const { evidence, pdfFile } = preparedEvidenceFiles[i];
         const letter = generateColumnLetter(startLetterIndex + i);
         
-        // Get and number the PDF file
-        const localForageFileLabel = `${pickedCase}_${sanitizeForKey(evidence.fileName)}`;
-        // Check for markup version first
-        const markupFileLabel = localForageFileLabel.replace(/\.pdf$/i, "_markup.pdf");
-        let pdfFile = await localforage.getItem(markupFileLabel);
-        
-        // If markup doesn't exist, fall back to the original file
-        if (!pdfFile) {
-            pdfFile = await localforage.getItem(localForageFileLabel);
-        }
-        
+        // Number the preflighted PDF file.
         let pdfBytes = await pdfFile.arrayBuffer();
 
         // Normalize page size BEFORE any overlays (page numbers, etc.)

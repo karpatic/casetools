@@ -27,6 +27,7 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
     const [markupFilename, setMarkupFilename] = React.useState(null);
     const [compiling, setCompiling] = React.useState(false);
     const [sorting, setSorting] = React.useState(false);
+    const [compileError, setCompileError] = React.useState(null);
 
     React.useEffect(() => { 
         setCurrentCase(cases[pickedCase] || {});
@@ -157,6 +158,7 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
             return;
         }
 
+        setCompileError(null);
         setCompiling(true);
 
         // Compile using the latest UNSAVED edits. This ensures that users see the most up-to-date version of their packet, even if they forget to click "Save Changes" before compiling.
@@ -179,6 +181,11 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
             showToast('Packet created');
             setActiveTab(null);
             setTimeout(() => setActiveTab(packetKey), 0);
+        } catch (error) {
+            console.error('Error compiling packet:', error);
+            const message = error?.userMessage || error?.message || 'Packet compilation failed. Please try again.';
+            setCompileError(message);
+            showToast(message, { variant: 'danger', delay: 12000 });
         } finally {
             setCompiling(false);
         }
@@ -254,6 +261,11 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
     return (
         <div> 
             <LoadingModal show={compiling || sorting} title={sorting ? 'Sorting evidence' : 'Compiling packet'} />
+            {compileError && (
+                <div className="alert alert-danger mt-3" role="alert">
+                    {compileError}
+                </div>
+            )}
             <ul className="nav nav-tabs">
                 {Object.keys(currentCase).filter(key => key.startsWith('evidencePacket_')).map((packetKey, index) => (
                     <li className="nav-item" key={index}>

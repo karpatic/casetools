@@ -1,4 +1,5 @@
-const showToast = (message) => {
+const showToast = (message, options = {}) => {
+	const { variant = 'primary', delay = 3000 } = options;
 	// Create a toast container if it does not exist
 	let container = document.getElementById('toast-container');
 	if (!container) {
@@ -11,19 +12,28 @@ const showToast = (message) => {
 		document.body.appendChild(container);
 	}
 	const toast = document.createElement('div');
-	toast.className = 'toast align-items-center text-bg-primary border-0';
+	toast.className = `toast align-items-center text-bg-${variant} border-0`;
 	toast.role = 'alert';
-	toast.ariaLive = 'assertive';
-	toast.ariaAtomic = 'true';
+	toast.setAttribute('aria-live', 'assertive');
+	toast.setAttribute('aria-atomic', 'true');
 	toast.style.marginBottom = '0.5rem';
-	toast.innerHTML = `<div class="d-flex">
-		<div class="toast-body">${message}</div>
-		<button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-	</div>`;
+	const content = document.createElement('div');
+	content.className = 'd-flex';
+	const body = document.createElement('div');
+	body.className = 'toast-body';
+	body.textContent = message;
+	const closeButton = document.createElement('button');
+	closeButton.type = 'button';
+	closeButton.className = 'btn-close me-2 m-auto';
+	closeButton.setAttribute('data-bs-dismiss', 'toast');
+	closeButton.setAttribute('aria-label', 'Close');
+	content.appendChild(body);
+	content.appendChild(closeButton);
+	toast.appendChild(content);
 	container.appendChild(toast);
-	const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+	const bsToast = new bootstrap.Toast(toast, { delay });
 	bsToast.show();
-	setTimeout(() => { toast.remove(); }, 3500);
+	setTimeout(() => { toast.remove(); }, delay + 500);
 };
 
 export default showToast;
