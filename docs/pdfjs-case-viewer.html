@@ -20,6 +20,11 @@
 <body>
     <div class="loading">Loading PDF.js viewer...</div>
     <script type="module">
+        import {
+            rewritePdfjsViewerHtml,
+            rewritePdfjsViewerScript,
+        } from './utils/pdf/pdfjsViewerLoader.js';
+
         const PDFJS_ROOT = 'https://mozilla.github.io/pdf.js/';
         const PDFJS_WEB = `${PDFJS_ROOT}web/`;
         const PDFJS_BUILD = `${PDFJS_ROOT}build/`;
@@ -37,34 +42,33 @@
                 }),
             ]);
 
-            const patchedViewerScript = viewerScript
-                .replace('value: "../web/cmaps/"', `value: "${PDFJS_WEB}cmaps/"`)
-                .replace('value: "../web/iccs/"', `value: "${PDFJS_WEB}iccs/"`)
-                .replace('value: "../web/standard_fonts/"', `value: "${PDFJS_WEB}standard_fonts/"`)
-                .replace('value: "../web/wasm/"', `value: "${PDFJS_WEB}wasm/"`)
-                .replace('value: "../build/pdf.worker.mjs"', `value: "${PDFJS_BUILD}pdf.worker.mjs"`)
-                .replace('value: "../build/pdf.sandbox.mjs"', `value: "${PDFJS_BUILD}pdf.sandbox.mjs"`)
-                .replace('value: "./debugger.mjs"', `value: "${PDFJS_WEB}debugger.mjs"`)
-                .replace('value: "compressed.tracemonkey-pldi-09.pdf"', 'value: ""');
+            const patchedViewerScript = rewritePdfjsViewerScript(viewerScript, {
+                pdfjsWebUrl: PDFJS_WEB,
+                pdfjsBuildUrl: PDFJS_BUILD,
+            });
 
             const viewerScriptUrl = URL.createObjectURL(new Blob([patchedViewerScript], { type: 'text/javascript' }));
-            const rewrittenHtml = viewerHtml
-                .replace('href="locale/locale.json"', `href="${PDFJS_WEB}locale/locale.json"`)
-                .replace('src="../build/pdf.mjs"', `src="${PDFJS_BUILD}pdf.mjs"`)
-                .replace('href="viewer.css"', `href="${PDFJS_WEB}viewer.css"`)
-                .replace('src="viewer.mjs"', `src="${viewerScriptUrl}"`)
-                .replace('</body>', `<script src="${BRIDGE_URL}"><\/script></body>`);
+            const rewrittenHtml = rewritePdfjsViewerHtml(viewerHtml, {
+                pdfjsWebUrl: PDFJS_WEB,
+                pdfjsBuildUrl: PDFJS_BUILD,
+                viewerScriptUrl,
+                bridgeUrl: BRIDGE_URL,
+            });
 
             document.open();
             document.write(rewrittenHtml);
             document.close();
         } catch (error) {
+            const detail = error?.message || String(error);
             console.error(error);
-            document.body.innerHTML = `<div class="loading">Could not load PDF.js viewer: ${error.message}</div>`;
+            const errorElement = document.createElement('div');
+            errorElement.className = 'loading';
+            errorElement.textContent = `Could not load PDF.js viewer: ${detail}`;
+            document.body.replaceChildren(errorElement);
             window.parent.postMessage({
                 type: 'case-tools-pdfjs-error',
                 message: 'Could not load PDF.js viewer.',
-                detail: error.message,
+                detail,
             }, window.location.origin);
         }
     </script>

@@ -7,6 +7,7 @@ import EvidencePackets from './evidence/packets.jsx';
 import PdfTools from './PdfTools.jsx'; 
 import { sanitizeForKey } from './../utils/utils.js';
 import { extractHighlightsFromPdf, updateEvidenceMarkupMetadata } from './../utils/pdf/markup.js';
+import { requestPersistentStorageOnce } from './../utils/storagePersistence.js';
 // localforage.clear().then(() => {
 //     console.log('All data cleared from localforage');
 // }).catch((err) => {
@@ -28,6 +29,10 @@ const App = () => {
     const [newCaseName, setNewCaseName] = React.useState('');
     const [apiKey, setApiKey] = React.useState(() => localStorage.getItem('apiKey') || '');
     const fileInputRef = React.useRef();
+
+    React.useEffect(() => {
+        requestPersistentStorageOnce();
+    }, []);
  
     const getCases = async () => { 
         const storedCases = await localforage.getItem('cases');
