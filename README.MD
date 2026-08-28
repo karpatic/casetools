@@ -4,7 +4,7 @@ The site is built using a client-side runtime bundler `rsc/transpile.js` which c
 
 The site is served using an index.html page which contains nothing more than
 
-1. An Import Map: ["react", "react-dom", "marked", "tesseract", "pdf-lib", "@pdf-lib/fontkit", "tabulator-tables", "bootstrap", "localforage"]
+1. An Import Map: ["react", "react-dom", "marked", "tesseract", "pdf-lib", "tabulator-tables", "bootstrap", "localforage"]
 2. An App.jsx entry point which can use the import map.
 
 ### File Structure
@@ -122,14 +122,11 @@ With the AI service, the markup review panel OCRs the evidence PDF and asks the 
 
 The compiler does not recreate markup. `createPacket.js` first uses the `_markup.pdf` sidecar when present, otherwise it uses the original evidence PDF. If `fitToSameDimensions` is enabled, `fitToLetter.js` scales pages and annotations together before page numbering and packet merge, so saved PDF.js highlights remain visible in compiled packets.
 
-Packet cover pages, tables of contents, and certificates are generated entirely in the browser with `pdf-lib` and repository-shipped Liberation Serif fonts. No document-generation server, Pandoc installation, or LaTeX installation is required at runtime.
-
 
 ### Libraries and Dependencies
 - React: The primary library for building the user interface.
 - localforage: For storing and retrieving data from IndexedDB.
 - pdf-lib: For handling PDF operations.
-- @pdf-lib/fontkit: For embedding Liberation Serif fonts in generated PDFs.
 - Tabulator: For rendering and managing tables.
 - Bootstrap: For styling and UI components.
 - Tesseract: For OCR (Optical Character Recognition) capabilities (used in a sample component).
