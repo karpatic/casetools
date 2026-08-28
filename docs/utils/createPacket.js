@@ -3,11 +3,7 @@ import localforage from 'localforage';
 import numberPages from './pdf/numberPages.js';
 import fitPdfToLetter from './pdf/fitToLetter.js';
 import { preflightEvidenceFiles } from './evidenceStorageKeys.js';
-import {
-    createCertificatePdfBytes,
-    createCoverPdfBytes,
-    createTableOfContentsPdfBytes,
-} from './pdf/packetDocuments.js';
+import { createCertificatePdfBytes, createCoverPdfBytes, createTableOfContentsPdfBytes } from './pdf/packetDocuments.js';
 
 
 // todo: add filesize as a metadata attribute. 
