@@ -29,15 +29,26 @@ GENERAL RULES
 * If a field does not apply, return an empty string "".
 * Never return null or undefined.
 * Title must be a single clean line.
+* Keep titles concise, formal, and judge-readable.
 * Do not invent facts.
-* If a date is available, use the document’s creation or publication date.
 * Format full dates as (Month D, YYYY).
 * If only Month and Year are available, use (Month YYYY).
 * If only Year is available, use (YYYY).
 * If approximate, use (Circa YYYY).
 * If an English translation is included, add: ", with Copy of English Translation".
 * Do not include translators or certifiers in the title unless they are the actual author.
+* Use preferred legal and agency acronyms consistently: EOIR, DHS, USCIS, FBI, UNHCR, IJ, BIA.
+* Preserve form identifiers exactly, including Form I-589, Form I-485, Form I-130, and Form I-94.
+* Do not expand well-known acronyms unless clarity requires it.
 * Avoid unnecessary punctuation.
+
+DATE SELECTION RULES
+
+* First identify the document being titled, not a translator's certificate, certification page, filing cover sheet, or event mentioned inside it.
+* Use the legally relevant date for that document type: creation or signing date for statements and letters; issuance date for notices, IDs, civil records, reports, and certificates; filing date for filed forms when visible; publication date for articles and country reports.
+* Do not use an event date mentioned in the text as the title date unless the document itself is a photo, record, or report whose subject is that event.
+* Do not use a translation, notarization, or certification date unless the translation, notarization, or certification is itself the document being titled.
+* If the relevant document date is not visible, omit the date from the title instead of guessing or inferring it from surrounding facts.
 
 TYPE DEFINITIONS AND FORMATTING
 
@@ -113,8 +124,8 @@ OFFICIAL REPORT
 Used for court decisions, agency determinations, receipt notices, police documents, and formal government publications.
 
 Examples of format:
-Decision of the Immigration Judge for Full Name (Month D, YYYY)
-Form I-130 Receipt Notice, filed by Full Name on behalf of Respondent, dated Month D, YYYY
+Decision of the IJ for Full Name (Month D, YYYY)
+USCIS Form I-130 Receipt Notice, filed by Full Name on behalf of Respondent, dated Month D, YYYY
 Country Department of State, "Report Title" (Month D, YYYY)
 Property Return Document for Full Name by Country National Police (Month D, YYYY)
 
@@ -139,6 +150,7 @@ Respondent's expired Country Passport and copy of F-1 visa
 Full Name's 2024 Federal Income Tax Return
 Full Name's W-2 Wage and Tax Statement for 2024
 Respondent's FBI Identity History Summary Check Results, dated April 3, 2026
+Respondent's EOIR Notice of Hearing (May 12, 2026)
 Incident Report by Full Name, School Name (March 23, 2024)
 Family Photos City State (September 2025)
 Protest Photos in City State (February 10, 2024)
@@ -175,8 +187,9 @@ Center for Strategic and International Studies, "In the Eye of the Storm: Countr
 Norwegian Refugee Council, "Country: Ongoing Violence Displacing Thousands" (August 30, 2025)
 
 OFFICIAL REPORT
-Decision of the Immigration Judge for Maria Lopez (March 27, 2025)
-Form I-589 Receipt Notice, dated February 18, 2026
+Decision of the IJ for Maria Lopez (March 27, 2025)
+BIA Decision for Maria Lopez (March 27, 2025)
+USCIS Form I-589 Receipt Notice, dated February 18, 2026
 Country Department of State, "Country Reports on Human Rights Practices for 2023"
 Country Department of the Treasury, "Treasury Sanctions Notorious Criminal Organization" (October 1, 2024)
 Property Return Document for Juan Perez by Country National Police (January 1, 2019)
@@ -202,7 +215,7 @@ date: '' || 'Month DD, YYYY'
 error: '' || 'error message'
 }
 
-Where date corresponds to the date of the documents creation or publication, if available.
+Where date corresponds to the visible, legally relevant date of the document being titled. Use the document's creation, signing, issuance, filing, or publication date as appropriate to document type. Do not use event dates mentioned in the text or translation/certification dates unless that is the document being titled. Leave date empty if the relevant date is not visible.
 `
  
 async function getTitle(cases, pickedCase, fileName, goupto = 1) {
