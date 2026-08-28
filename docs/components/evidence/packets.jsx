@@ -367,7 +367,6 @@ const EvidencePackets = ({ cases, setCases, pickedCase }) => {
                     setCases={setCases} 
                     pickedCaseName={pickedCase} 
                     markupFilename={markupFilename}
-                    setMarkupFilename={setMarkupFilename}
                 />
             )}
             <style>{` 
