@@ -13,6 +13,14 @@ async function processMessage(conversation) {
   }
 }
 
+async function suggestMarkupHighlights(caseName, legalContext, evidenceObj, extractedText) {
+  const prompt = composeMarkupSuggestionPrompt(caseName, legalContext, evidenceObj, extractedText);
+  return callChatGPT([
+    { role: "system", content: prompt },
+    { role: "user", content: "Suggest supporting highlights for attorney review. Do not apply anything." },
+  ], true);
+}
+
 // Compose the prompt for GPT based on case details and evidence
 function composePrompt(caseName, legalContext, evidenceObj = null, extractedText = null) {
     let prompt = ` 
@@ -83,6 +91,44 @@ function composePrompt(caseName, legalContext, evidenceObj = null, extractedText
     }
 
   return prompt;
+}
+
+function composeMarkupSuggestionPrompt(caseName, legalContext, evidenceObj, extractedText) {
+  const rawText = JSON.stringify(extractedText);
+  return `
+You are the legal assistant for an attorney working on the '${caseName}' case.
+
+Suggest PDF highlights that support the case. The user will review your suggestions before anything is written to the PDF.
+
+Return only a valid JSON object in this exact shape:
+
+{
+  "chatmessage": "A short plain-language summary for the reviewer.",
+  "data": [
+    { "page": 1, "text": "Exact OCR quote text.", "x1": 0, "x2": 0, "y1": 0 }
+  ]
+}
+
+Rules:
+1. Use only the OCR data below. Do not invent quote text, pages, or coordinates.
+2. Prefer complete, judge-readable sentences and the strongest supporting quotes.
+3. Avoid repeating quotes already approved for markup unless necessary for context.
+4. If a quote spans OCR lines, return one data item for each line segment that should be highlighted.
+5. Every data item must include page, text, and highlight coordinates usable by PDF.js.
+6. For OCR bbox values, map bbox.x0 to x1, bbox.x1 to x2, and bbox.y0 to y1. You may also include the full bbox object.
+
+Case context:
+${legalContext}
+
+Document:
+${evidenceObj?.fileName || ""}
+
+Already approved highlights:
+${JSON.stringify(evidenceObj?.extractedSelections || [])}
+
+OCR text:
+${rawText}
+`;
 }
 
 function getPreMadeMessages(markupFilename) {
@@ -164,4 +210,4 @@ function getLegalContext(cases, pickedCaseName) {
   return finalPrompt;
 } 
 
-export { processMessage, composePrompt, getPreMadeMessages, getLegalContext };
+export { processMessage, suggestMarkupHighlights, composePrompt, getPreMadeMessages, getLegalContext };
