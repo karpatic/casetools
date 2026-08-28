@@ -16,6 +16,7 @@ There is intentionally no traditional build step: the browser loads JSX directly
 - **Tabulator**: evidence table rendering/editing
 - **localForage**: persistence backed by IndexedDB
 - **pdf-lib**: PDF composition and page-level manipulation
+- **@pdf-lib/fontkit**: custom font embedding for generated legal packet pages
 - **JSZip**: import/export a case as a `.zip`
 - **marked**: markdown rendering (used by some flows)
 - **tesseract.js**: OCR (used for text extraction/markup)
@@ -65,8 +66,8 @@ This keeps the JSON `cases` object small and avoids storing large blobs in React
 ## Packet Compilation Pipeline
 Compilation happens in `docs/utils/createPacket.js`.
 
-1. **Metadata YAML** is derived from `basics` + packet config.
-2. **Cover / Certificate / TOC PDFs** are produced by sending YAML + LaTeX templates to a hosted Pandoc service.
+1. **Packet metadata** is read from `basics` + packet config as structured objects.
+2. **Cover / Certificate / TOC PDFs** are generated entirely in the browser by `docs/utils/pdf/packetDocuments.js` using structured case data, `pdf-lib`, `@pdf-lib/fontkit`, and local Liberation Serif fonts.
 3. Each evidence PDF is loaded from IndexedDB, optionally using the `_markup.pdf` variant if present.
 4. Evidence PDFs are **page-numbered** via `docs/utils/pdf/numberPages.js`.
 5. Each exhibit is prefixed with a letter page from `docs/rsc/letters/`.
@@ -87,11 +88,13 @@ Merging is handled by `docs/utils/pdf/merge.js`.
     - `pdf/` — PDF operations (merge, OCR, numbering, etc.)
     - `gpt/` — LLM helpers used for sorting/titles
   - `rsc/` — static resources
-    - `latex/` — LaTeX templates for Pandoc
+    - `fonts/` — Liberation Serif fonts and license notice for generated packet pages
+    - `latex/` — historical layout references; not loaded by packet compilation
     - `letters/` — exhibit letter pages
 
 ## Design Philosophy
 - **Static-first**: runs as a static site; avoids server-side state.
+- **Client-side packet generation**: no document-generation server is required for cover, TOC, certificate, or merge output.
 - **Local persistence**: JSON config + blobs live in IndexedDB for durability.
 - **Small, direct modules**: utilities are single-purpose and imported directly.
 - **Minimal UI conventions**: Bootstrap is used for layout; components follow simple form + action button flows.
