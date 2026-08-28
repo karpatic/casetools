@@ -4,6 +4,11 @@ import localforage from 'localforage';
 import numberPages from './pdf/numberPages.js';
 import fitPdfToLetter from './pdf/fitToLetter.js';
 import { preflightEvidenceFiles } from './evidenceStorageKeys.js';
+import { createTemplatePdfCompiler } from './pdftex/templatePdfCompiler.js';
+import {
+    compilePacketFrontMatterPdfs,
+    compilePacketTableOfContentsPdf,
+} from './pdftex/packetTemplatePdfs.js';
 
 
 // todo: add filesize as a metadata attribute. 
@@ -26,29 +31,15 @@ async function createPacket(selectedCase, pickedCase, packetKey) {
     );
 
     // Step 1. Create the Certificate, and Cover
-    let getPdfFromResponse = async (response) => {
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Error from Pandoc server:', errorText);
-            throw new Error(`Pandoc conversion failed: ${response.statusText}`);
-        }  
-        return response.blob();
-    }
-
     // Step 1A. CERTIFICATE - Creates certificate.pdf      
     const PANDOC_URL = 'https://getfrom.net/pdf/pandoc'
-    let latex = await fetch('rsc/latex/certificate.tex', { cache: 'no-store' }).then(res => res.text()); 
-    let resp = await fetch(PANDOC_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, latex }),
-    });  
-    const certificatePdf = await getPdfFromResponse(resp);  // Blob {size: 69041, type: 'application/pdf'}    
-
-    // // Step 1B. COVER
-    latex = await fetch('rsc/latex/cover.tex', { cache: 'no-store' }).then(res => res.text()); 
-    let resptwo = await fetch(PANDOC_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, latex }),
+    const templateCompiler = createTemplatePdfCompiler({ pandocUrl: PANDOC_URL });
+    const { certificatePdf, coverPdf } = await compilePacketFrontMatterPdfs({
+        compiler: templateCompiler,
+        config,
+        packetConfig,
+        metadataPandocText: text,
     });
-    const coverPdf = await getPdfFromResponse(resptwo);
     const coverPdfBytes = await coverPdf.arrayBuffer();
     
 
@@ -107,13 +98,13 @@ async function createPacket(selectedCase, pickedCase, packetKey) {
     // Step 3A. Create the TOC
     text = createTableOfContentsYaml(config, exhibitList, packetConfig); 
     console.log('TableOfContentsYaml:\n', text)
-    latex = await fetch('rsc/latex/toc.tex', { cache: 'no-store' }).then(res => res.text());   
-    let response = await fetch(PANDOC_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, latex })
+    const tocPdf = await compilePacketTableOfContentsPdf({
+        compiler: templateCompiler,
+        config,
+        packetConfig,
+        contents: exhibitList,
+        tableOfContentsPandocText: text,
     });
-    const tocPdf = await getPdfFromResponse(response);
     const tocPdfBytes = await tocPdf.arrayBuffer();
 
 

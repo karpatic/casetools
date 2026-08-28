@@ -122,6 +122,14 @@ With the AI service, the chatbot OCRs the evidence PDF and asks the model to ret
 
 The compiler does not recreate markup. `createPacket.js` first uses the `_markup.pdf` sidecar when present, otherwise it uses the original evidence PDF. If `fitToSameDimensions` is enabled, `fitToLetter.js` scales pages and annotations together before page numbering and packet merge, so saved PDF.js highlights remain visible in compiled packets.
 
+### Packet PDF Compiler
+
+Packet cover, certificate, and table-of-contents PDFs still compile through the hosted Pandoc server by default. Browser pdfTeX is Phase 1 opt-in only through query keys `casetools-pdftex`, `casetoolsPdfTeX`, or `pdftex`, or through `localStorage["casetools.experimentalBrowserPdfTeX"]`, set to an enable value (`1`, `true`, `on`, `yes`, `browser`, `pdftex`, or `browser-pdftex`); `?casetools-pdftex=server` keeps the server path for that load.
+
+The browser runtime is deliberately bounded: CaseTools vendors the three `docs/rsc/swiftlatex/` engine assets, `docs/rsc/texlive/pdftex/10/swiftlatexpdftex.fmt`, and only the TeX files listed in `docs/rsc/texlive/casetools-pdftex-manifest.json`, pinned to TeXBrain commit `57b6a32b4d33cf94deb0b1c9260bb991df86cb86`. A separate development package fallback can be enabled through query keys `casetools-pdftex-dev-packages`, `casetoolsPdfTeXDevPackages`, or `pdftexDevPackages`, or through `localStorage["casetools.experimentalBrowserPdfTeX.devPackageFallback"]`; it fetches missing files from the pinned static mirror recorded in the manifest.
+
+When browser pdfTeX fails, CaseTools records `window.__casetoolsLastBrowserPdfTeXError`, emits `casetools:pdftex-fallback`, logs missing/requested file diagnostics, and falls back to the Pandoc server for the rest of the packet. The server compiler remains in place.
+
 
 ### Libraries and Dependencies
 - React: The primary library for building the user interface.

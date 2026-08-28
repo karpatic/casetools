@@ -1,0 +1,2 @@
+docs/rsc/texlive/cache/** whitespace=-trailing-space,-space-before-tab
+docs/rsc/texlive/pdftex/** -diff
