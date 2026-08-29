@@ -1,4 +1,4 @@
-import { BrowserPdfTeXCompileError, pdfBytesToBlob } from './templatePdfCompiler.js';
+import { BrowserPdfTeXCompileError, pdfBytesToBlob } from './browserPdfTeXResult.js';
 
 const TEXBRAIN_SOURCE_COMMIT = '57b6a32b4d33cf94deb0b1c9260bb991df86cb86';
 const TEXBRAIN_STATIC_TEXLIVE_MIRROR_ROOT = 'https://cdn.jsdelivr.net/gh/SachaNevsky/latexdiff-texmf-dist@aca46fc00975feebf98e038976790805c3e932df';

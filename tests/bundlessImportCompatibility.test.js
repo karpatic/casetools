@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const appEntryPoint = path.join(repoRoot, 'docs/components/App.jsx');
 const relativeJsSpecifierPattern = /(?:from\s*)?['"](\.{1,2}\/[^'"]+\.(?:js|jsx))['"]/;
+const relativeDynamicImportPattern = /import\s*\(\s*['"](\.{1,2}\/[^'"]+\.(?:js|jsx))['"]\s*\)/g;
 
 function collectImportStatements(source) {
     const lines = source.split(/\r?\n/);
@@ -63,19 +64,42 @@ function collectBundlessModuleFiles(entryPoint) {
     return [...visited].sort();
 }
 
-test('Bundless app dependency graph keeps relative JS imports on a single line', () => {
+function collectRelativeDynamicImports(source, filePath) {
+    const offenders = [];
+    let match;
+
+    while ((match = relativeDynamicImportPattern.exec(source)) !== null) {
+        const line = source.slice(0, match.index).split(/\r?\n/).length;
+        offenders.push(`${path.relative(repoRoot, filePath)}:${line}`);
+    }
+
+    return offenders;
+}
+
+test('Bundless app dependency graph keeps relative JS imports statically rewritable', () => {
     const moduleFiles = collectBundlessModuleFiles(appEntryPoint);
     assert.ok(
         moduleFiles.includes(path.join(repoRoot, 'docs/utils/createPacket.js')),
         'Regression coverage should include the packet creator loaded through the app entry point.',
     );
+    assert.ok(
+        moduleFiles.includes(path.join(repoRoot, 'docs/utils/pdftex/browserPdfTeXCompiler.js')),
+        'Browser pdfTeX must be a static app dependency so Bundless can rewrite its relative imports.',
+    );
 
-    const offenders = moduleFiles
+    const splitImportOffenders = moduleFiles
         .flatMap(filePath => collectSplitRelativeImports(readFileSync(filePath, 'utf8'), filePath));
+    const dynamicImportOffenders = moduleFiles
+        .flatMap(filePath => collectRelativeDynamicImports(readFileSync(filePath, 'utf8'), filePath));
 
     assert.deepEqual(
-        offenders,
+        splitImportOffenders,
         [],
         'Bundless rewrites imports one line at a time; split relative JS imports are left unresolved in blob modules.',
+    );
+    assert.deepEqual(
+        dynamicImportOffenders,
+        [],
+        'Bundless cannot resolve relative dynamic imports from blob modules; app graph imports must be statically rewritable.',
     );
 });
