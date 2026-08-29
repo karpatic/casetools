@@ -69,6 +69,30 @@ test('builds browser template data with the metadata paths used by packet templa
     ]);
 });
 
+test('builds browser template data for respondent file_numbers arrays and legacy file_number values', () => {
+    const data = createPacketLatexData({
+        ...sampleBasics,
+        respondents: [
+            {
+                full_name: 'Modern Respondent',
+                file_numbers: ['A001', 'A002'],
+                file_number: 'SHOULD-NOT-WIN',
+                status: 'Principal',
+            },
+            {
+                full_name: 'Legacy Respondent',
+                file_number: 'B001',
+                status: 'Derivative',
+            },
+        ],
+    }, { packetTitle: 'Motion & Evidence' });
+
+    assert.equal(data.respondents[0].file_number_one, 'A001');
+    assert.deepEqual(data.respondents[0].file_numbers_rest, ['A002']);
+    assert.equal(data.respondents[1].file_number_one, 'B001');
+    assert.deepEqual(data.respondents[1].file_numbers_rest, []);
+});
+
 test('renders the existing certificate, cover, and toc templates into complete LaTeX without Pandoc markers', () => {
     const data = createPacketLatexData(sampleBasics, { packetTitle: 'Motion & Evidence' }, [
         { letter: 'A', title: 'Lease_1', pageRange: '1 - 2' },

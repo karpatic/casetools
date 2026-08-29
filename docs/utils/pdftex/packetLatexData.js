@@ -1,3 +1,5 @@
+import { getRespondentFileNumbers } from '../respondentFileNumbers.js';
+
 function createPacketLatexData(config, packetConfig, contents = []) {
     const respondentCount = (config?.respondents || []).reduce((acc, respondent) => {
         const status = respondent.status || '';
@@ -37,13 +39,16 @@ function createPacketLatexData(config, packetConfig, contents = []) {
             certificate_location_linetwo: fields.certificate_location_linetwo || '',
             certificate_location_statezip: fields.certificate_location_statezip || '',
         },
-        respondents: (config?.respondents || []).map(respondent => ({
-            full_name: respondent.full_name || '',
-            file_number_one: respondent.file_numbers?.[0] || '',
-            file_numbers_rest: respondent.file_numbers?.slice(1) || [],
-            count: respondentCount[respondent.status || ''] || 0,
-            status: respondent.status || '',
-        })),
+        respondents: (config?.respondents || []).map(respondent => {
+            const fileNumbers = getRespondentFileNumbers(respondent);
+            return {
+                full_name: respondent.full_name || '',
+                file_number_one: fileNumbers?.[0] || '',
+                file_numbers_rest: fileNumbers?.slice(1) || [],
+                count: respondentCount[respondent.status || ''] || 0,
+                status: respondent.status || '',
+            };
+        }),
         judge: {
             judge_name: fields.judge_name || '',
             hearing_date: fields.hearing_date || '',

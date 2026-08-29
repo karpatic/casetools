@@ -1,3 +1,5 @@
+import { getRespondentFileNumbers } from './respondentFileNumbers.js';
+
 function createCaseContentsYaml(tableOfContents) {   
     let createRecord = entry =>
         `  - letter: "${entry.letter}"\n    title: "${entry.title.replace(/"/g, '\\"')}"\n    pageRange: "${entry.pageRange}"`;
@@ -68,9 +70,10 @@ certificate:
     
 respondents:
 ${config?.respondents?.map(r => { 
+    const fileNumbers = getRespondentFileNumbers(r);
     return `  - full_name: "${(r.full_name || '').replace(/"/g, '\\"')}"
-    file_number_one: "${r.file_numbers[0]}"
-    file_numbers_rest:${`\n${r.file_numbers.slice(1).map(fn => `      - "${fn}"`).join('\n')}`}
+    file_number_one: "${fileNumbers[0]}"
+    file_numbers_rest:${`\n${fileNumbers.slice(1).map(fn => `      - "${fn}"`).join('\n')}`}
     count: ${respondentCount[r.status] || 0}
     status: "${(r.status || '').replace(/"/g, '\\"')}"`;
 }).join('\n')} 
