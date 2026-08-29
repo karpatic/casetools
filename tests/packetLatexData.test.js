@@ -48,6 +48,8 @@ const sampleBasics = {
     ],
 };
 
+const pandocMarkerPattern = /\$if\(|\$for\(|\$endif\$|\$endfor\$|\$\{|(?:^|[^\\])\$it(?:\.|\$)/;
+
 test('builds browser template data with the metadata paths used by packet templates', () => {
     const data = createPacketLatexData(sampleBasics, { packetTitle: 'Motion & Evidence' }, [
         { letter: 'A', title: 'Lease_1', pageRange: '1 - 2' },
@@ -107,7 +109,7 @@ test('renders the existing certificate, cover, and toc templates into complete L
         const rendered = renderPandocLatexTemplate(readFileSync(path, 'utf8'), data);
         assert.match(rendered, /\\documentclass/);
         assert.match(rendered, /\\begin\{document\}/);
-        assert.doesNotMatch(rendered, /\$if\(|\$for\(|\$endif\$|\$endfor\$|\$\{|(?:^|[^\\])\$it(?:\.|\$)/);
+        assert.doesNotMatch(rendered, pandocMarkerPattern);
     }
 });
 
@@ -115,6 +117,7 @@ test('renders certificate respondent file-number breaks without standalone direc
     const data = createPacketLatexData(sampleBasics, { packetTitle: 'Motion & Evidence' }, []);
     const rendered = renderPandocLatexTemplate(readFileSync('docs/rsc/latex/certificate.tex', 'utf8'), data);
 
-    assert.match(rendered, /Ana Pérez[^\n]*A001[^\n]*\n[ \t]*\\\\\n[ \t]*\\makebox\[[^\n]+A002/);
+    assert.match(rendered, /Ana Pérez[^\n]*File No\.: A001[^\n]*\n[ \t]*\\\\\n[ \t]*\\makebox\[[^\n]+A002/);
+    assert.doesNotMatch(rendered, pandocMarkerPattern);
     assert.doesNotMatch(rendered, /Ana Pérez[^\n]*A001[^\n]*\n[ \t]*\n[ \t]*\\\\/);
 });
