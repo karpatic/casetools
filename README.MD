@@ -124,11 +124,11 @@ The compiler does not recreate markup. `createPacket.js` first uses the `_markup
 
 ### Packet PDF Compiler
 
-Packet cover, certificate, and table-of-contents PDFs still compile through the hosted Pandoc server by default. Browser pdfTeX is Phase 1 opt-in only through query keys `casetools-pdftex`, `casetoolsPdfTeX`, or `pdftex`, or through `localStorage["casetools.experimentalBrowserPdfTeX"]`, set to an enable value (`1`, `true`, `on`, `yes`, `browser`, `pdftex`, or `browser-pdftex`); `?casetools-pdftex=server` keeps the server path for that load.
+Packet cover, certificate, and table-of-contents PDFs compile with browser pdfTeX by default. The hosted Pandoc server remains available as an explicit emergency mode for a page load with `?pdftex=pandoc`; the legacy query keys `casetools-pdftex` and `casetoolsPdfTeX` also accept `pandoc`, `server`, or `pandoc-server`.
 
-The browser runtime is deliberately bounded: CaseTools vendors the three `docs/rsc/swiftlatex/` engine assets, `docs/rsc/texlive/pdftex/10/swiftlatexpdftex.fmt`, and only the TeX files listed in `docs/rsc/texlive/casetools-pdftex-manifest.json`, pinned to TeXBrain commit `57b6a32b4d33cf94deb0b1c9260bb991df86cb86`. A separate development package fallback can be enabled through query keys `casetools-pdftex-dev-packages`, `casetoolsPdfTeXDevPackages`, or `pdftexDevPackages`, or through `localStorage["casetools.experimentalBrowserPdfTeX.devPackageFallback"]`; it fetches missing files from the pinned static mirror recorded in the manifest.
+The browser runtime is deliberately bounded: CaseTools vendors the three `docs/rsc/swiftlatex/` engine assets, `docs/rsc/texlive/pdftex/10/swiftlatexpdftex.fmt`, and only the TeX files listed in `docs/rsc/texlive/casetools-pdftex-manifest.json`, pinned to TeXBrain commit `57b6a32b4d33cf94deb0b1c9260bb991df86cb86`. A separate development package fallback is disabled by default and can be enabled through query keys `casetools-pdftex-dev-packages`, `casetoolsPdfTeXDevPackages`, or `pdftexDevPackages`, or through `localStorage["casetools.experimentalBrowserPdfTeX.devPackageFallback"]`; it fetches missing files from the pinned static mirror recorded in the manifest.
 
-When browser pdfTeX fails, CaseTools records `window.__casetoolsLastBrowserPdfTeXError`, emits `casetools:pdftex-fallback`, logs missing/requested file diagnostics, and falls back to the Pandoc server for the rest of the packet. The server compiler remains in place.
+When browser pdfTeX fails, CaseTools records `window.__casetoolsLastBrowserPdfTeXError`, emits `casetools:pdftex-error`, logs missing/requested file diagnostics, and stops packet compilation without contacting the Pandoc server.
 
 
 ### Libraries and Dependencies

@@ -66,18 +66,18 @@ This keeps the JSON `cases` object small and avoids storing large blobs in React
 Compilation happens in `docs/utils/createPacket.js`.
 
 1. **Metadata YAML** is derived from `basics` + packet config.
-2. **Cover / Certificate / TOC PDFs** are produced by sending YAML + LaTeX templates to a hosted Pandoc service.
+2. **Cover / Certificate / TOC PDFs** are produced by rendering YAML into LaTeX templates and compiling them with browser pdfTeX by default.
 3. Each evidence PDF is loaded from IndexedDB, optionally using the `_markup.pdf` variant if present.
 4. Evidence PDFs are **page-numbered** via `docs/utils/pdf/numberPages.js`.
 5. Each exhibit is prefixed with a letter page from `docs/rsc/letters/`.
 6. Everything is merged into the final packet PDF.
 
 ### Template PDF compiler mode
-The hosted Pandoc service remains the default compiler and has not been removed. Browser pdfTeX is Phase 1 opt-in only through query keys `casetools-pdftex`, `casetoolsPdfTeX`, or `pdftex`, or through `localStorage["casetools.experimentalBrowserPdfTeX"]`, set to an enable value (`1`, `true`, `on`, `yes`, `browser`, `pdftex`, or `browser-pdftex`). A query value overrides localStorage, so `?casetools-pdftex=server` forces the Pandoc server for that load.
+Browser pdfTeX is the default template PDF compiler. The hosted Pandoc service remains available as an explicit emergency mode with `?pdftex=pandoc`; the legacy query keys `casetools-pdftex` and `casetoolsPdfTeX` also accept `pandoc`, `server`, or `pandoc-server`. Removing the query value restores the browser default.
 
 Browser pdfTeX vendors a bounded runtime rather than a full TeX Live tree: the three `docs/rsc/swiftlatex/` engine assets, `docs/rsc/texlive/pdftex/10/swiftlatexpdftex.fmt`, and the files explicitly listed in `docs/rsc/texlive/casetools-pdftex-manifest.json`. These assets are pinned to TeXBrain commit `57b6a32b4d33cf94deb0b1c9260bb991df86cb86`.
 
-Development-only package fallback is a separate opt-in through query keys `casetools-pdftex-dev-packages`, `casetoolsPdfTeXDevPackages`, or `pdftexDevPackages`, or through `localStorage["casetools.experimentalBrowserPdfTeX.devPackageFallback"]`. It can fetch missing TeX files from the pinned static TeX Live mirror recorded in the manifest. Browser pdfTeX failures are surfaced through `window.__casetoolsLastBrowserPdfTeXError`, a `casetools:pdftex-fallback` event, and console diagnostics before falling back to the Pandoc server for the rest of the packet.
+Development-only package fallback is disabled by default and remains a separate opt-in through query keys `casetools-pdftex-dev-packages`, `casetoolsPdfTeXDevPackages`, or `pdftexDevPackages`, or through `localStorage["casetools.experimentalBrowserPdfTeX.devPackageFallback"]`. It can fetch missing TeX files from the pinned static TeX Live mirror recorded in the manifest. Browser pdfTeX failures are surfaced through `window.__casetoolsLastBrowserPdfTeXError`, a `casetools:pdftex-error` event, and console diagnostics; packet compilation stops without an automatic Pandoc retry.
 
 ### Page sizing behavior
 Merging is handled by `docs/utils/pdf/merge.js`.

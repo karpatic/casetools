@@ -11,14 +11,13 @@ function createTemplatePdfCompiler({
     browserCompileLatex = defaultBrowserCompileLatex,
 } = {}) {
     const mode = selectPacketPdfCompilerMode(environment);
-    let useServerForRestOfPacket = mode.compiler !== 'browser-pdftex';
 
     return {
         mode,
         async compile({ templatePath, pandocText, templateData }) {
             const latex = await fetchImpl(templatePath, { cache: 'no-store' }).then(res => res.text());
 
-            if (!useServerForRestOfPacket) {
+            if (mode.compiler === 'browser-pdftex') {
                 try {
                     const renderedLatex = renderPandocLatexTemplate(latex, templateData);
                     const browserResult = await browserCompileLatex(renderedLatex, {
@@ -28,8 +27,8 @@ function createTemplatePdfCompiler({
                     });
                     return browserResult instanceof Blob ? browserResult : pdfBytesToBlob(browserResult);
                 } catch (error) {
-                    useServerForRestOfPacket = true;
                     surfaceBrowserPdfTeXFailure(error, { environment, logger, templatePath });
+                    throw error;
                 }
             }
 
@@ -80,13 +79,13 @@ function surfaceBrowserPdfTeXFailure(error, { environment, logger, templatePath 
 
     if (target?.dispatchEvent && target?.CustomEvent) {
         try {
-            target.dispatchEvent(new target.CustomEvent('casetools:pdftex-fallback', { detail }));
+            target.dispatchEvent(new target.CustomEvent('casetools:pdftex-error', { detail }));
         } catch {
             // Console logging below is the durable diagnostic surface.
         }
     }
 
-    logger.error('CaseTools browser pdfTeX failed; falling back to the Pandoc server.', detail, error);
+    logger.error('CaseTools browser pdfTeX failed.', detail, error);
 }
 
 async function defaultBrowserCompileLatex(latex, options) {

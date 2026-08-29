@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 
 import {
     BROWSER_PDFTEX_DEV_FALLBACK_STORAGE_KEY,
-    BROWSER_PDFTEX_STORAGE_KEY,
     selectPacketPdfCompilerMode,
 } from '../docs/utils/pdftex/compilerMode.js';
 
@@ -13,14 +12,14 @@ function fakeStorage(entries = {}) {
     };
 }
 
-test('uses the Pandoc server compiler by default', () => {
+test('uses browser pdfTeX by default', () => {
     assert.deepEqual(
         selectPacketPdfCompilerMode({
             location: { search: '' },
             localStorage: fakeStorage(),
         }),
         {
-            compiler: 'pandoc-server',
+            compiler: 'browser-pdftex',
             source: 'default',
             rawValue: null,
             devPackageFallback: false,
@@ -29,7 +28,7 @@ test('uses the Pandoc server compiler by default', () => {
     );
 });
 
-test('enables browser pdfTeX only through an explicit query value', () => {
+test('keeps browser pdfTeX enabled through an explicit query value', () => {
     const mode = selectPacketPdfCompilerMode({
         location: { search: '?casetools-pdftex=browser' },
         localStorage: fakeStorage(),
@@ -40,20 +39,30 @@ test('enables browser pdfTeX only through an explicit query value', () => {
     assert.equal(mode.rawValue, 'browser');
 });
 
-test('supports localStorage opt-in but lets a query disable override it', () => {
+test('keeps an explicit Pandoc server emergency query mode', () => {
     const mode = selectPacketPdfCompilerMode({
-        location: { search: '?casetools-pdftex=server' },
-        localStorage: fakeStorage({ [BROWSER_PDFTEX_STORAGE_KEY]: 'true' }),
+        location: { search: '?pdftex=pandoc' },
+        localStorage: fakeStorage(),
     });
 
     assert.equal(mode.compiler, 'pandoc-server');
     assert.equal(mode.source, 'query');
-    assert.equal(mode.rawValue, 'server');
+    assert.equal(mode.rawValue, 'pandoc');
+});
+
+test('keeps the compiler emergency mode tied to the explicit query', () => {
+    const mode = selectPacketPdfCompilerMode({
+        location: { search: '' },
+        localStorage: fakeStorage({ 'casetools.experimentalBrowserPdfTeX': 'pandoc' }),
+    });
+
+    assert.equal(mode.compiler, 'browser-pdftex');
+    assert.equal(mode.source, 'default');
 });
 
 test('requires a separate explicit setting for the TeX Live development fallback', () => {
     const mode = selectPacketPdfCompilerMode({
-        location: { search: '?casetools-pdftex=1&casetools-pdftex-dev-packages=1' },
+        location: { search: '?casetools-pdftex-dev-packages=1' },
         localStorage: fakeStorage({ [BROWSER_PDFTEX_DEV_FALLBACK_STORAGE_KEY]: 'false' }),
     });
 

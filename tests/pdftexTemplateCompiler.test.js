@@ -44,13 +44,41 @@ test('rejects malformed pdfTeX bytes before creating a packet Blob', () => {
     );
 });
 
-test('uses the Pandoc server compiler by default', async () => {
+test('uses browser pdfTeX by default', async () => {
     const fetchImpl = fakeFetch();
     let browserCalls = 0;
     const compiler = createTemplatePdfCompiler({
         fetchImpl,
         pandocUrl: 'https://pandoc.example/pdf',
         environment: { location: { search: '' }, localStorage: null },
+        browserCompileLatex: async (latex, options) => {
+            browserCalls += 1;
+            assert.equal(latex, 'Hello Browser');
+            assert.equal(options.devPackageFallback, false);
+            return pdfBlob('browser');
+        },
+    });
+
+    const result = await compiler.compile({
+        templatePath: 'rsc/latex/certificate.tex',
+        pandocText: '---\nname: Server\n---',
+        templateData: { name: 'Browser' },
+    });
+
+    assert.equal(result.type, 'application/pdf');
+    assert.equal(await result.text(), '%PDF-browser');
+    assert.equal(browserCalls, 1);
+    assert.equal(fetchImpl.calls.length, 1);
+    assert.equal(fetchImpl.calls[0].url, 'rsc/latex/certificate.tex');
+});
+
+test('uses the Pandoc server only through explicit emergency mode', async () => {
+    const fetchImpl = fakeFetch();
+    let browserCalls = 0;
+    const compiler = createTemplatePdfCompiler({
+        fetchImpl,
+        pandocUrl: 'https://pandoc.example/pdf',
+        environment: { location: { search: '?pdftex=pandoc' }, localStorage: null },
         browserCompileLatex: async () => {
             browserCalls += 1;
             return pdfBlob('browser');
@@ -73,14 +101,26 @@ test('uses the Pandoc server compiler by default', async () => {
     });
 });
 
-test('logs the real browser pdfTeX failure and falls back to the server for the rest of the packet', async () => {
+test('logs the real browser pdfTeX failure and rejects without server fallback', async () => {
     const fetchImpl = fakeFetch();
     const errors = [];
+    const events = [];
+    const windowTarget = {
+        CustomEvent: class CustomEvent {
+            constructor(type, init = {}) {
+                this.type = type;
+                this.detail = init.detail;
+            }
+        },
+        dispatchEvent(event) {
+            events.push(event);
+        },
+    };
     let browserCalls = 0;
     const compiler = createTemplatePdfCompiler({
         fetchImpl,
         pandocUrl: 'https://pandoc.example/pdf',
-        environment: { location: { search: '?casetools-pdftex=1' }, localStorage: null },
+        environment: { location: { search: '' }, localStorage: null, window: windowTarget },
         logger: { error: (...args) => errors.push(args), warn: () => {}, info: () => {} },
         browserCompileLatex: async () => {
             browserCalls += 1;
@@ -92,21 +132,23 @@ test('logs the real browser pdfTeX failure and falls back to the server for the 
         },
     });
 
-    const first = await compiler.compile({
-        templatePath: 'rsc/latex/certificate.tex',
-        pandocText: '---first---',
-        templateData: { name: 'Fallback' },
-    });
-    const second = await compiler.compile({
-        templatePath: 'rsc/latex/cover.tex',
-        pandocText: '---second---',
-        templateData: { name: 'Fallback' },
-    });
+    await assert.rejects(
+        () => compiler.compile({
+            templatePath: 'rsc/latex/certificate.tex',
+            pandocText: '---first---',
+            templateData: { name: 'Failure' },
+        }),
+        /pdfTeX status 1/,
+    );
 
-    assert.equal(await first.text(), '%PDF-server');
-    assert.equal(await second.text(), '%PDF-server');
     assert.equal(browserCalls, 1);
+    assert.equal(fetchImpl.calls.length, 1);
+    assert.equal(fetchImpl.calls[0].url, 'rsc/latex/certificate.tex');
     assert.equal(errors.length, 1);
     assert.match(JSON.stringify(errors[0]), /newtxtext\.sty/);
     assert.match(JSON.stringify(errors[0]), /pdfTeX status 1/);
+    assert.equal(windowTarget.__casetoolsLastBrowserPdfTeXError.templatePath, 'rsc/latex/certificate.tex');
+    assert.deepEqual(windowTarget.__casetoolsLastBrowserPdfTeXError.missingFiles, ['newtxtext.sty']);
+    assert.equal(events.length, 1);
+    assert.equal(events[0].type, 'casetools:pdftex-error');
 });

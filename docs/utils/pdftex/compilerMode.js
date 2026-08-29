@@ -1,4 +1,3 @@
-const BROWSER_PDFTEX_STORAGE_KEY = 'casetools.experimentalBrowserPdfTeX';
 const BROWSER_PDFTEX_DEV_FALLBACK_STORAGE_KEY = 'casetools.experimentalBrowserPdfTeX.devPackageFallback';
 
 const BROWSER_PDFTEX_QUERY_KEYS = [
@@ -21,9 +20,8 @@ function selectPacketPdfCompilerMode(environment = {}) {
     const localStorage = environment.localStorage ?? globalThis?.localStorage;
     const compilerPreference = readPreference({
         queryKeys: BROWSER_PDFTEX_QUERY_KEYS,
-        storageKey: BROWSER_PDFTEX_STORAGE_KEY,
         location,
-        localStorage,
+        defaultEnabled: true,
     });
     const devFallbackPreference = readPreference({
         queryKeys: BROWSER_PDFTEX_DEV_FALLBACK_QUERY_KEYS,
@@ -41,28 +39,32 @@ function selectPacketPdfCompilerMode(environment = {}) {
     };
 }
 
-function readPreference({ queryKeys, storageKey, location, localStorage }) {
+function readPreference({ queryKeys, storageKey, location, localStorage, defaultEnabled = false }) {
     const queryValue = getQueryValue(queryKeys, location);
     if (queryValue !== null) {
-        return parsePreferenceValue(queryValue, 'query');
+        return parsePreferenceValue(queryValue, 'query', defaultEnabled);
     }
 
-    const storageValue = getStorageValue(storageKey, localStorage);
+    const storageValue = storageKey ? getStorageValue(storageKey, localStorage) : null;
     if (storageValue !== null) {
-        return parsePreferenceValue(storageValue, 'localStorage');
+        return parsePreferenceValue(storageValue, 'localStorage', defaultEnabled);
     }
 
     return {
-        enabled: false,
+        enabled: defaultEnabled,
         source: 'default',
         rawValue: null,
     };
 }
 
-function parsePreferenceValue(value, source) {
+function parsePreferenceValue(value, source, defaultEnabled = false) {
     const normalized = String(value).trim().toLowerCase();
+    let enabled = defaultEnabled;
+    if (ENABLE_VALUES.has(normalized)) enabled = true;
+    if (DISABLE_VALUES.has(normalized)) enabled = false;
+
     return {
-        enabled: ENABLE_VALUES.has(normalized) && !DISABLE_VALUES.has(normalized),
+        enabled,
         source,
         rawValue: value,
     };
@@ -89,6 +91,5 @@ function getStorageValue(key, localStorage) {
 
 export {
     BROWSER_PDFTEX_DEV_FALLBACK_STORAGE_KEY,
-    BROWSER_PDFTEX_STORAGE_KEY,
     selectPacketPdfCompilerMode,
 };
