@@ -5,10 +5,7 @@ import numberPages from './pdf/numberPages.js';
 import fitPdfToLetter from './pdf/fitToLetter.js';
 import { preflightEvidenceFiles } from './evidenceStorageKeys.js';
 import { createTemplatePdfCompiler } from './pdftex/templatePdfCompiler.js';
-import {
-    compilePacketFrontMatterPdfs,
-    compilePacketTableOfContentsPdf,
-} from './pdftex/packetTemplatePdfs.js';
+import { compilePacketFrontMatterPdfs, compilePacketTableOfContentsPdf } from './pdftex/packetTemplatePdfs.js';
 
 
 // todo: add filesize as a metadata attribute. 
